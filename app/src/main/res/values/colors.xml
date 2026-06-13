@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Single source of truth for the app palette. Change these values to re-theme the whole app.
+  Dark theme with green accents (gardening style): a mix of white, grey, black and green.
+-->
+<resources>
+    <!-- Green accents -->
+    <color name="green_primary">#4CAF50</color>
+    <color name="green_primary_dark">#2E7D32</color>
+    <color name="green_accent">#8BC34A</color>
+    <color name="green_deep">#1B5E20</color>
+
+    <!-- Neutrals -->
+    <color name="black">#000000</color>
+    <color name="grey_900">#121212</color>
+    <color name="grey_850">#1C1C1C</color>
+    <color name="grey_800">#242424</color>
+    <color name="grey_700">#333333</color>
+    <color name="grey_500">#8A8A8A</color>
+    <color name="grey_300">#CFCFCF</color>
+    <color name="white">#FFFFFF</color>
+
+    <!-- Semantic surface roles (used by the theme) -->
+    <color name="background">@color/grey_900</color>
+    <color name="surface">@color/grey_850</color>
+    <color name="surface_variant">@color/grey_800</color>
+    <color name="on_background">@color/white</color>
+    <color name="on_surface">@color/grey_300</color>
+    <color name="on_primary">@color/black</color>
+
+    <!-- Alert accent -->
+    <color name="alert_amber">#FFB300</color>
+</resources>

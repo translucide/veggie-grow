@@ -1,0 +1,56 @@
+Create an Android application to manage veggies growth in Java. 
+
+----------------------------------------------------------------
+1. General application description
+
+    The goal of the application is to organize, monitor and control a number of growth spaces organized with multiple growth bins. 
+
+    Each growth space contains a number of growth bins.
+
+    Each bins have a number of settings
+
+    Bins can be assigned presets. A preset prefills a form, but lets the user modify the form data and optionaly save back/overwrite the preset.
+
+    Presets have a number of constant data settings and a number of date related data settings that might change over time in days. For example the bin Name field will remain the same over the growth period, but the watering level field will probably change over the growth of the plan, so there need to be a way to define multiple watering levels over multiple day values.    
+
+    The bins are refered to by Growth Space code and Bin code, for example A1 refers to Growth Space A, Bin 1.
+
+    All the data and settings of the application must be easily exported to a json file and imported back into the application.
+
+----------------------------------------------------------------
+2. Data 
+
+    Here are the editable data elements for each data object : 
+
+    Growth Space : 
+    - Code
+    - Name
+    - Image
+    - Water reservoir size
+
+    Bin : 
+    - Code
+    - Variety Name
+    - Image
+    - Start Date
+    - Watering Rate (this one changes over time, so multiple settings values are present over the growth course, but only 1 value at any given time)
+
+    Settings : 
+    - Pumps rate in LPM/GPM
+    - Min water level before alert
+    - Harvest alert : how many days in advance ?
+
+----------------------------------------------------------------
+3. App style and colors 
+
+    1. Use a dark theme with green accent colors like outdoor or gardening apps does.
+    2. Color theme must be easily configurable in the code.
+    3. Use a mixture of white, grey, black and green colors
+    4. Use a professional style with sans serif fonts only.
+    5. Create a nice veggie leaf like logo for the app.
+
+----------------------------------------------------------------
+
+4. Alerts :
+    1. Harvest due in less than (harvest alert days setting) for any bin. Mention which one in the alert
+    2. Water reservoir needs refill (calculate from pump rate and min water level with reservoir size in the growth space).

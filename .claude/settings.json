@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find / -type d \\\\\\( -name 'platforms' -path '*ndk*' -prune -o -name 'build-tools' \\\\\\) 2>/dev/null | grep -iE 'android|sdk' | head; echo \"--- look for aapt2/adb ---\"; find / -name 'aapt2' -o -name 'adb' 2>/dev/null | head; echo \"--- AGP in gradle cache? ---\"; find /home/translucide/.gradle/caches -path '*com.android.application*' -name '*.jar' 2>/dev/null | head -3)",
+      "Read(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "Bash(*)",
+      "WebSearch",
+      "Bash(cat:*)",
+      "Bash(./convert:*)",
+      "Bash(ls:*)",
+      "Bash(php:*)",
+      "Bash(grep:*)",
+      "Read(//home/translucide/.gradle/caches/**)"
+    ]
+  }
+}

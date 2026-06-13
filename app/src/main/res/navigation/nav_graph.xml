@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/spacesFragment">
+
+    <fragment
+        android:id="@+id/spacesFragment"
+        android:name="ca.translucide.veggiegrow.ui.spaces.SpacesFragment"
+        android:label="@string/spaces_title" />
+
+    <fragment
+        android:id="@+id/spaceDetailFragment"
+        android:name="ca.translucide.veggiegrow.ui.spaces.SpaceDetailFragment"
+        android:label="@string/spaces_title">
+        <argument
+            android:name="spaceCode"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/binFormFragment"
+        android:name="ca.translucide.veggiegrow.ui.bin.BinFormFragment"
+        android:label="@string/edit_bin">
+        <argument
+            android:name="spaceCode"
+            app:argType="string" />
+        <argument
+            android:name="binCode"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/presetsFragment"
+        android:name="ca.translucide.veggiegrow.ui.presets.PresetsFragment"
+        android:label="@string/presets_title" />
+
+    <fragment
+        android:id="@+id/alertsFragment"
+        android:name="ca.translucide.veggiegrow.ui.alerts.AlertsFragment"
+        android:label="@string/alerts_title" />
+
+    <fragment
+        android:id="@+id/uploadFragment"
+        android:name="ca.translucide.veggiegrow.ui.upload.UploadFragment"
+        android:label="@string/upload_title" />
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="ca.translucide.veggiegrow.ui.settings.SettingsFragment"
+        android:label="@string/settings_title" />
+</navigation>

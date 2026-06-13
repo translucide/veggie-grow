@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VeggieGrow</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_spaces">Spaces</string>
+    <string name="nav_alerts">Alerts</string>
+    <string name="nav_upload">Upload</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Notifications -->
+    <string name="alert_channel_name">Grow Alerts</string>
+    <string name="alert_channel_desc">Harvest due and reservoir refill notifications</string>
+
+    <!-- Common -->
+    <string name="action_add">Add</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
+    <string name="pick_image">Pick image</string>
+
+    <!-- Spaces -->
+    <string name="spaces_title">Growth Spaces</string>
+    <string name="add_space">Add space</string>
+    <string name="edit_space">Edit space</string>
+    <string name="space_code">Space code (e.g. A)</string>
+    <string name="space_name">Name</string>
+    <string name="reservoir_size">Water reservoir size</string>
+    <string name="bins_count">%1$d bin(s)</string>
+
+    <!-- Space detail -->
+    <string name="reservoir_remaining">Reservoir: ~%1$s / %2$s</string>
+    <string name="mark_refilled">Mark refilled</string>
+    <string name="add_bin">Add bin</string>
+    <string name="edit_bin">Edit bin</string>
+    <string name="last_refill">Last refill: %1$s</string>
+
+    <!-- Bin -->
+    <string name="bin_code">Bin code (e.g. 1)</string>
+    <string name="variety_name">Variety name</string>
+    <string name="start_date">Start date</string>
+    <string name="first_harvest_days">First harvest (days from start)</string>
+    <string name="harvest_interval_days">Harvest every (days, 0 = once)</string>
+    <string name="watering_schedule">Watering schedule</string>
+    <string name="add_rate_point">Add rate point</string>
+    <string name="day_offset_hint">Day</string>
+    <string name="rate_hint">Rate</string>
+    <string name="current_rate">Current rate: %1$s</string>
+    <string name="find_photos">Find photos</string>
+    <string name="photos_for">Photos for \"%1$s\"</string>
+    <string name="enter_variety_first">Enter a variety name first</string>
+    <string name="searching_photos">Searching…</string>
+    <string name="no_photos_found">No photos found</string>
+    <string name="photo_search_failed">Photo search failed. Check your connection.</string>
+    <string name="applying_photo">Downloading photo…</string>
+    <string name="apply_preset">Apply preset</string>
+    <string name="save_as_preset">Save as preset</string>
+    <string name="preset_name">Preset name</string>
+
+    <!-- Presets -->
+    <string name="presets_title">Presets</string>
+    <string name="no_presets">No presets yet.</string>
+
+    <!-- Alerts -->
+    <string name="alerts_title">Alerts</string>
+    <string name="no_alerts">No active alerts. 🌱</string>
+
+    <!-- Upload -->
+    <string name="upload_title">Upload to Controller</string>
+    <string name="select_device">Select device</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="upload_now">Upload now</string>
+    <string name="payload_preview">Payload preview</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_connected">Connected: %1$s</string>
+    <string name="using_mock">Using mock hardware (toggle in Settings)</string>
+    <string name="using_bluetooth">Using Bluetooth serial</string>
+    <string name="bt_permission_needed">Bluetooth permission is required to connect.</string>
+    <string name="upload_success">Uploaded: %1$s</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="pump_rate">Pump rate</string>
+    <string name="pump_rate_unit">Pump rate unit</string>
+    <string name="min_water_level">Min water level before alert</string>
+    <string name="harvest_alert_days">Harvest alert (days in advance)</string>
+    <string name="use_mock_hardware">Use mock hardware</string>
+    <string name="export_json">Export JSON</string>
+    <string name="import_json">Import JSON</string>
+    <string name="export_done">Exported successfully</string>
+    <string name="import_done">Imported successfully</string>
+    <string name="import_failed">Import failed: %1$s</string>
+</resources>

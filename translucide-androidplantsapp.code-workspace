@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"window.title": "Plants Application",
+		"workbench.colorCustomizations": {
+			"titleBar.activeBackground": "#006400",
+			"titleBar.activeForeground": "#FFFFFF",
+			"titleBar.inactiveBackground": "#003300",
+			"titleBar.inactiveForeground": "#D1C4E9"
+		}
+	}	
+
+}

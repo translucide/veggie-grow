@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/spacesFragment"
+        android:icon="@drawable/ic_spaces"
+        android:title="@string/nav_spaces" />
+    <item
+        android:id="@+id/alertsFragment"
+        android:icon="@drawable/ic_alert"
+        android:title="@string/nav_alerts" />
+    <item
+        android:id="@+id/uploadFragment"
+        android:icon="@drawable/ic_upload"
+        android:title="@string/nav_upload" />
+    <item
+        android:id="@+id/settingsFragment"
+        android:icon="@drawable/ic_settings"
+        android:title="@string/nav_settings" />
+</menu>
