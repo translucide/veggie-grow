@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -32,7 +33,20 @@ public class PresetsFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        adapter = new PresetAdapter(this::confirmDelete);
+        adapter = new PresetAdapter(new PresetAdapter.Listener() {
+            @Override
+            public void onClick(Preset preset) {
+                Bundle args = new Bundle();
+                args.putString("presetName", preset.name);
+                NavHostFragment.findNavController(PresetsFragment.this)
+                        .navigate(R.id.binFormFragment, args);
+            }
+
+            @Override
+            public void onLongClick(Preset preset) {
+                confirmDelete(preset);
+            }
+        });
         binding.recycler.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.recycler.setAdapter(adapter);
 

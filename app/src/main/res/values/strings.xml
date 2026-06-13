@@ -28,6 +28,7 @@
     <string name="space_name">Name</string>
     <string name="reservoir_size">Water reservoir size</string>
     <string name="bins_count">%1$d bin(s)</string>
+    <string name="no_bins_tap_to_add">No bins yet — tap the rack to add one.</string>
 
     <!-- Space detail -->
     <string name="reservoir_remaining">Reservoir: ~%1$s / %2$s</string>
@@ -59,6 +60,7 @@
     <string name="preset_name">Preset name</string>
 
     <!-- Presets -->
+    <string name="edit_preset">Edit preset</string>
     <string name="presets_title">Presets</string>
     <string name="no_presets">No presets yet.</string>
 

@@ -24,9 +24,16 @@
         android:label="@string/edit_bin">
         <argument
             android:name="spaceCode"
-            app:argType="string" />
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
         <argument
             android:name="binCode"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+        <argument
+            android:name="presetName"
             app:argType="string"
             app:nullable="true"
             android:defaultValue="@null" />

@@ -1,5 +1,6 @@
 package ca.translucide.veggiegrow.ui.presets;
 
+import android.graphics.Bitmap;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
@@ -9,12 +10,16 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 
+import ca.translucide.veggiegrow.R;
 import ca.translucide.veggiegrow.data.model.Preset;
 import ca.translucide.veggiegrow.databinding.ItemPresetBinding;
+import ca.translucide.veggiegrow.util.ImageUtils;
 
 public class PresetAdapter extends RecyclerView.Adapter<PresetAdapter.VH> {
 
     public interface Listener {
+        void onClick(Preset preset);
+
         void onLongClick(Preset preset);
     }
 
@@ -46,6 +51,15 @@ public class PresetAdapter extends RecyclerView.Adapter<PresetAdapter.VH> {
         int points = p.wateringSchedule == null ? 0 : p.wateringSchedule.size();
         String variety = p.varietyName == null || p.varietyName.isEmpty() ? "—" : p.varietyName;
         h.b.subtitle.setText(variety + " · " + points + " rate point(s) · harvest " + p.firstHarvestDays + "d");
+
+        Bitmap bmp = ImageUtils.base64ToBitmap(p.imageBase64);
+        if (bmp != null) {
+            h.b.image.setImageBitmap(bmp);
+        } else {
+            h.b.image.setImageResource(R.drawable.ic_leaf);
+        }
+
+        h.itemView.setOnClickListener(v -> listener.onClick(p));
         h.itemView.setOnLongClickListener(v -> {
             listener.onLongClick(p);
             return true;

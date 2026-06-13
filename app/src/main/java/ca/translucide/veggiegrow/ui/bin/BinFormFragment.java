@@ -50,6 +50,10 @@ public class BinFormFragment extends Fragment {
     private GrowthSpace space;
     private Bin editing;     // null when adding
 
+    // Preset-editing mode: the form edits a Preset instead of a Bin (no code / start date).
+    private boolean presetMode;
+    private Preset editingPreset;
+
     private String imageBase64;
     private long startDateMillis;
 
@@ -75,10 +79,31 @@ public class BinFormFragment extends Fragment {
         Bundle args = getArguments();
         spaceCode = args != null ? args.getString("spaceCode") : null;
         binCode = args != null ? args.getString("binCode") : null;
-        space = DataRepository.get().data().findSpace(spaceCode);
+        String presetName = args != null ? args.getString("presetName") : null;
+        presetMode = presetName != null;
 
         startDateMillis = DateUtils.todayMillis();
 
+        binding.btnPickImage.setOnClickListener(v -> imagePicker.launch("image/*"));
+        binding.btnFindPhotos.setOnClickListener(v -> findPhotos());
+        getChildFragmentManager().setFragmentResultListener(
+                PhotoPickerDialog.RESULT_KEY, getViewLifecycleOwner(),
+                (key, bundle) -> applyRemotePhoto(bundle.getString(PhotoPickerDialog.RESULT_URL)));
+        binding.inputStartDate.setOnClickListener(v -> pickDate());
+        binding.btnAddRate.setOnClickListener(v -> addRateRow(0, 0d));
+        binding.btnApplyPreset.setOnClickListener(v -> showPresetPicker());
+        binding.btnSavePreset.setOnClickListener(v -> saveAsPreset());
+        binding.btnSave.setOnClickListener(v -> save());
+
+        if (presetMode) {
+            setupPresetMode(presetName);
+        } else {
+            setupBinMode();
+        }
+    }
+
+    private void setupBinMode() {
+        space = DataRepository.get().data().findSpace(spaceCode);
         if (space != null && binCode != null) {
             for (Bin b : space.bins) {
                 if (binCode.equalsIgnoreCase(b.code)) {
@@ -93,17 +118,37 @@ public class BinFormFragment extends Fragment {
             addRateRow(0, 0d);
             updateStartDateLabel();
         }
+    }
 
-        binding.btnPickImage.setOnClickListener(v -> imagePicker.launch("image/*"));
-        binding.btnFindPhotos.setOnClickListener(v -> findPhotos());
-        getChildFragmentManager().setFragmentResultListener(
-                PhotoPickerDialog.RESULT_KEY, getViewLifecycleOwner(),
-                (key, bundle) -> applyRemotePhoto(bundle.getString(PhotoPickerDialog.RESULT_URL)));
-        binding.inputStartDate.setOnClickListener(v -> pickDate());
-        binding.btnAddRate.setOnClickListener(v -> addRateRow(0, 0d));
-        binding.btnApplyPreset.setOnClickListener(v -> showPresetPicker());
-        binding.btnSavePreset.setOnClickListener(v -> saveAsPreset());
-        binding.btnSave.setOnClickListener(v -> save());
+    private void setupPresetMode(String presetName) {
+        // Show the preset-name field; hide the bin-only fields and the preset shortcuts.
+        binding.layoutPresetName.setVisibility(View.VISIBLE);
+        binding.layoutCode.setVisibility(View.GONE);
+        binding.layoutStartDate.setVisibility(View.GONE);
+        binding.btnApplyPreset.setVisibility(View.GONE);
+        binding.btnSavePreset.setVisibility(View.GONE);
+        requireActivity().setTitle(R.string.edit_preset);
+
+        for (Preset p : DataRepository.get().data().presets) {
+            if (presetName.equalsIgnoreCase(p.name)) {
+                editingPreset = p;
+                break;
+            }
+        }
+        if (editingPreset != null) {
+            binding.inputPresetName.setText(editingPreset.name);
+            Bin temp = new Bin();
+            editingPreset.applyTo(temp);
+            binding.inputVariety.setText(temp.varietyName);
+            binding.inputFirstHarvest.setText(String.valueOf(temp.firstHarvestDays));
+            binding.inputHarvestInterval.setText(String.valueOf(temp.harvestIntervalDays));
+            imageBase64 = temp.imageBase64;
+            android.graphics.Bitmap bmp = ImageUtils.base64ToBitmap(imageBase64);
+            if (bmp != null) binding.imagePreview.setImageBitmap(bmp);
+            rebuildRateRows(temp.wateringSchedule);
+        } else {
+            addRateRow(0, 0d);
+        }
     }
 
     private void prefillFrom(Bin bin) {
@@ -253,6 +298,10 @@ public class BinFormFragment extends Fragment {
     }
 
     private void save() {
+        if (presetMode) {
+            savePreset();
+            return;
+        }
         if (space == null) {
             toast("Space not found");
             return;
@@ -273,6 +322,23 @@ public class BinFormFragment extends Fragment {
         } else {
             DataRepository.get().addBin(space, result);
         }
+        NavHostFragment.findNavController(this).popBackStack();
+    }
+
+    private void savePreset() {
+        String name = text(binding.inputPresetName);
+        if (name.isEmpty()) {
+            binding.inputPresetName.setError("Required");
+            return;
+        }
+        Bin snapshot = buildBinFromForm(false);
+        if (snapshot == null) return;
+
+        // Support rename: drop the old entry if the name changed (upsert matches by name).
+        if (editingPreset != null && !name.equalsIgnoreCase(editingPreset.name)) {
+            DataRepository.get().removePreset(editingPreset);
+        }
+        DataRepository.get().upsertPreset(Preset.fromBin(name, snapshot));
         NavHostFragment.findNavController(this).popBackStack();
     }
 

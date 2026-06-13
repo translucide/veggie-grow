@@ -52,6 +52,15 @@ public class SpacesFragment extends Fragment {
             public void onLongClick(GrowthSpace space) {
                 showSpaceOptions(space);
             }
+
+            @Override
+            public void onBinClick(GrowthSpace space, ca.translucide.veggiegrow.data.model.Bin bin) {
+                Bundle args = new Bundle();
+                args.putString("spaceCode", space.code);
+                args.putString("binCode", bin.code);
+                NavHostFragment.findNavController(SpacesFragment.this)
+                        .navigate(R.id.binFormFragment, args);
+            }
         });
         binding.recycler.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.recycler.setAdapter(adapter);
