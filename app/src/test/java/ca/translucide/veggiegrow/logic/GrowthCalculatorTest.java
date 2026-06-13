@@ -80,6 +80,36 @@ public class GrowthCalculatorTest {
     }
 
     @Test
+    public void harvest_anchorsOnLastHarvestWhenSet() {
+        // First harvest scheduled day 30, then every 20 days. Harvested early at day 20 (today).
+        Bin b = binStartedDaysAgo(20);
+        b.firstHarvestDays = 30;
+        b.harvestIntervalDays = 20;
+        b.lastHarvestEpochMillis = NOW; // harvested today (day 20)
+        // Next harvest should be 20 days out (day 40), not the original day 30.
+        assertEquals(20, GrowthCalculator.daysUntilHarvest(b, NOW));
+    }
+
+    @Test
+    public void harvest_advancesAcrossMissedIntervalsFromLastHarvest() {
+        Bin b = binStartedDaysAgo(45);
+        b.firstHarvestDays = 30;
+        b.harvestIntervalDays = 20;
+        b.lastHarvestEpochMillis = NOW - 25 * DAY; // harvested 25 days ago, interval 20 passed
+        // 25 days since last harvest -> next boundary is 40 days after last harvest = 15 days out.
+        assertEquals(15, GrowthCalculator.daysUntilHarvest(b, NOW));
+    }
+
+    @Test
+    public void harvest_singleHarvestDoneHasNoNext() {
+        Bin b = binStartedDaysAgo(10);
+        b.firstHarvestDays = 30;
+        b.harvestIntervalDays = 0;       // single harvest
+        b.lastHarvestEpochMillis = NOW;  // already harvested
+        assertEquals(GrowthCalculator.NO_HARVEST, GrowthCalculator.daysUntilHarvest(b, NOW));
+    }
+
+    @Test
     public void reservoir_depletesFromRefill() {
         GrowthSpace s = new GrowthSpace();
         s.waterReservoirSize = 20.0;

@@ -29,6 +29,13 @@ public class Bin {
     /** Repeat harvest every N days after the first harvest. 0 disables recurring harvests. */
     public int harvestIntervalDays;
 
+    /**
+     * Timestamp of the last recorded harvest (epoch millis), or 0 if never harvested. When set,
+     * upcoming harvests are computed from this date + {@link #harvestIntervalDays} rather than from
+     * the start date.
+     */
+    public long lastHarvestEpochMillis;
+
     public Bin() {
     }
 }

@@ -50,10 +50,26 @@ public final class GrowthCalculator {
 
     /**
      * Next harvest date as epoch millis, or {@link Long#MIN_VALUE} if there is no upcoming harvest
-     * (recurring disabled and the single first harvest has already passed). When the first harvest
-     * is still ahead, that date is returned.
+     * (recurring disabled and the single harvest has already happened/passed).
+     *
+     * <p>If a harvest has been recorded ({@link Bin#lastHarvestEpochMillis} &gt; 0), upcoming
+     * harvests are anchored on that date + interval. Otherwise they are anchored on the start date
+     * + {@link Bin#firstHarvestDays}.
      */
     public static long nextHarvestDate(Bin bin, long nowMillis) {
+        long interval = bin.harvestIntervalDays * MILLIS_PER_DAY;
+
+        if (bin.lastHarvestEpochMillis > 0) {
+            // Re-anchored on the actual last harvest.
+            if (bin.harvestIntervalDays <= 0) {
+                return NO_HARVEST; // single harvest, already done
+            }
+            long elapsed = nowMillis - bin.lastHarvestEpochMillis;
+            long periods = (long) Math.ceil(elapsed / (double) interval);
+            if (periods < 1) periods = 1; // always at least one interval after a harvest
+            return bin.lastHarvestEpochMillis + periods * interval;
+        }
+
         long first = bin.startDateEpochMillis + bin.firstHarvestDays * MILLIS_PER_DAY;
         if (first >= nowMillis) {
             return first;
@@ -62,7 +78,6 @@ public final class GrowthCalculator {
         if (bin.harvestIntervalDays <= 0) {
             return NO_HARVEST;
         }
-        long interval = bin.harvestIntervalDays * MILLIS_PER_DAY;
         long elapsed = nowMillis - first;
         long periods = (elapsed + interval - 1) / interval; // ceil division -> next boundary
         return first + periods * interval;

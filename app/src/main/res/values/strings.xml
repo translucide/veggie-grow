@@ -48,6 +48,10 @@
     <string name="day_offset_hint">Day</string>
     <string name="rate_hint">Rate</string>
     <string name="current_rate">Current rate: %1$s</string>
+    <string name="mark_harvested">Mark harvested</string>
+    <string name="next_harvest">Next harvest: %1$s</string>
+    <string name="harvest_recorded">Harvest recorded for %1$s</string>
+    <string name="harvest_info_line">Next harvest: %1$s  ·  Last harvest: %2$s</string>
     <string name="find_photos">Find photos</string>
     <string name="photos_for">Photos for \"%1$s\"</string>
     <string name="enter_variety_first">Enter a variety name first</string>

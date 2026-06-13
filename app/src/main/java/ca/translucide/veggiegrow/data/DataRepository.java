@@ -96,6 +96,11 @@ public class DataRepository {
         commit();
     }
 
+    public void markHarvested(Bin bin, long nowMillis) {
+        bin.lastHarvestEpochMillis = nowMillis;
+        commit();
+    }
+
     public void upsertPreset(Preset preset) {
         for (int i = 0; i < data.presets.size(); i++) {
             if (data.presets.get(i).name.equalsIgnoreCase(preset.name)) {

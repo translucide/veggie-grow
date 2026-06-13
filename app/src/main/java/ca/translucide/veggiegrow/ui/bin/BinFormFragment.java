@@ -33,6 +33,7 @@ import ca.translucide.veggiegrow.data.model.Preset;
 import ca.translucide.veggiegrow.data.model.WateringRatePoint;
 import ca.translucide.veggiegrow.databinding.FragmentBinFormBinding;
 import ca.translucide.veggiegrow.databinding.ItemRatePointBinding;
+import ca.translucide.veggiegrow.logic.GrowthCalculator;
 import ca.translucide.veggiegrow.util.DateUtils;
 import ca.translucide.veggiegrow.util.ImageUtils;
 
@@ -114,10 +115,29 @@ public class BinFormFragment extends Fragment {
         }
         if (editing != null) {
             prefillFrom(editing);
+            binding.harvestActions.setVisibility(View.VISIBLE);
+            binding.btnHarvested.setOnClickListener(v -> markHarvested());
+            updateHarvestInfo();
         } else {
             addRateRow(0, 0d);
             updateStartDateLabel();
         }
+    }
+
+    private void markHarvested() {
+        if (editing == null) return;
+        DataRepository.get().markHarvested(editing, DateUtils.todayMillis());
+        updateHarvestInfo();
+        toast(getString(R.string.harvest_recorded, spaceCode + editing.code));
+    }
+
+    private void updateHarvestInfo() {
+        if (editing == null) return;
+        long now = DateUtils.todayMillis();
+        long next = GrowthCalculator.nextHarvestDate(editing, now);
+        String nextStr = next == GrowthCalculator.NO_HARVEST ? "—" : DateUtils.format(next);
+        binding.harvestInfo.setText(getString(R.string.harvest_info_line,
+                nextStr, DateUtils.format(editing.lastHarvestEpochMillis)));
     }
 
     private void setupPresetMode(String presetName) {
