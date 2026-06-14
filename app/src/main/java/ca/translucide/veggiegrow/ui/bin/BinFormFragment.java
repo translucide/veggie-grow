@@ -308,6 +308,12 @@ public class BinFormFragment extends Fragment {
     private void saveAsPreset() {
         final EditText nameInput = new EditText(requireContext());
         nameInput.setHint(R.string.preset_name);
+        // Pre-populate with the current variety name as a sensible default preset name.
+        String variety = text(binding.inputVariety);
+        if (!variety.isEmpty()) {
+            nameInput.setText(variety);
+            nameInput.setSelection(variety.length());
+        }
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.save_as_preset)
                 .setView(nameInput)
