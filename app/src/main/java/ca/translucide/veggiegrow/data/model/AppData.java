@@ -12,6 +12,9 @@ public class AppData {
     /** Schema version, validated on import to guard against incompatible files. */
     public int schemaVersion = 1;
 
+    /** True once first-run defaults (preset library + sample rack) have been seeded. */
+    public boolean seeded = false;
+
     public Settings settings = new Settings();
 
     public List<GrowthSpace> spaces = new ArrayList<>();

@@ -8,12 +8,14 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import java.io.IOException;
+import java.util.List;
 
 import ca.translucide.veggiegrow.data.model.AppData;
 import ca.translucide.veggiegrow.data.model.Bin;
 import ca.translucide.veggiegrow.data.model.GrowthSpace;
 import ca.translucide.veggiegrow.data.model.Preset;
 import ca.translucide.veggiegrow.data.model.Settings;
+import ca.translucide.veggiegrow.util.DateUtils;
 
 /**
  * Single source of truth for application state. Holds the {@link AppData} model in memory, exposes
@@ -27,14 +29,76 @@ public class DataRepository {
 
     private static DataRepository instance;
 
+    /** Codes of the 12 default bins seeded on first run (one preset each). */
+    private static final String[] DEFAULT_BIN_VARIETIES = {
+            "Cherry Tomato", "Bell Pepper", "Slicing Cucumber", "Zucchini",
+            "Butterhead Lettuce", "Curly Kale", "Nantes Carrot", "Cherry Belle Radish",
+            "Bush Bean", "Genovese Basil", "Italian Parsley", "Strawberry"
+    };
+    private static final double DEFAULT_RESERVOIR_ML = 20000.0; // 20 L
+
     private final JsonStore store;
     private final AppData data;
     private final MutableLiveData<AppData> liveData = new MutableLiveData<>();
+    private boolean seededThisLaunch;
 
     private DataRepository(@NonNull Context appContext) {
         this.store = new JsonStore(appContext.getFilesDir());
         this.data = store.load();
+        if (!data.seeded && data.spaces.isEmpty() && data.presets.isEmpty()) {
+            seedDefaults(appContext);
+        }
         liveData.setValue(data);
+    }
+
+    /** True when this launch performed the first-run seeding (used to fetch default photos once). */
+    public boolean wasSeededThisLaunch() {
+        return seededThisLaunch;
+    }
+
+    /**
+     * First-run defaults: load the bundled preset library, then create space "A" with 12 bins
+     * (codes 1..12), each instantiated from a preset, starting today.
+     */
+    private void seedDefaults(@NonNull Context context) {
+        List<Preset> library = PresetLibrary.load(context);
+        if (library.isEmpty()) {
+            return; // nothing to seed from; try again next launch
+        }
+        data.presets.addAll(library);
+
+        GrowthSpace space = new GrowthSpace();
+        space.code = "A";
+        space.name = "My Growth Space";
+        space.waterReservoirSize = DEFAULT_RESERVOIR_ML; // image left null -> leaf icon shown
+
+        long today = DateUtils.todayMillis();
+        int code = 1;
+        for (String variety : DEFAULT_BIN_VARIETIES) {
+            Preset preset = findPreset(library, variety);
+            if (preset == null) continue;
+            Bin bin = new Bin();
+            bin.code = String.valueOf(code++);
+            preset.applyTo(bin);
+            bin.startDateEpochMillis = today;
+            space.bins.add(bin);
+        }
+        data.spaces.add(space);
+        data.seeded = true;
+        seededThisLaunch = true;
+
+        try {
+            store.save(data);
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to persist seeded defaults", e);
+        }
+    }
+
+    private static Preset findPreset(List<Preset> presets, String name) {
+        for (Preset p : presets) {
+            if (name.equalsIgnoreCase(p.name)) return p;
+        }
+        return null;
     }
 
     public static synchronized DataRepository init(@NonNull Context context) {
@@ -121,6 +185,7 @@ public class DataRepository {
     /** Replaces the whole model (used by import). */
     public void replaceAll(@NonNull AppData imported) {
         data.schemaVersion = imported.schemaVersion;
+        data.seeded = true; // imported data stands on its own; never auto-seed over it
         data.settings = imported.settings != null ? imported.settings : new Settings();
         data.spaces.clear();
         if (imported.spaces != null) data.spaces.addAll(imported.spaces);

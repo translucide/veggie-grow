@@ -4,15 +4,24 @@ import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.work.Constraints;
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import ca.translucide.veggiegrow.data.DataRepository;
+import ca.translucide.veggiegrow.data.model.Bin;
+import ca.translucide.veggiegrow.data.model.GrowthSpace;
+import ca.translucide.veggiegrow.data.model.Preset;
+import ca.translucide.veggiegrow.imagesearch.ImageResult;
+import ca.translucide.veggiegrow.imagesearch.ImageSearchClient;
+import ca.translucide.veggiegrow.util.ImageUtils;
 import ca.translucide.veggiegrow.work.AlertWorker;
 
 /**
@@ -27,9 +36,56 @@ public class VeggieGrowApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        DataRepository.init(this);
+        DataRepository repo = DataRepository.init(this);
         createNotificationChannel();
         scheduleAlertChecks();
+        if (repo.wasSeededThisLaunch()) {
+            fetchDefaultPhotos();
+        }
+    }
+
+    /**
+     * Best-effort, one-time background fetch of a photo for each seeded default bin (and its
+     * matching preset), using the same image search the bin form offers. Requires network; any
+     * failure is silently skipped so the leaf placeholder simply remains.
+     */
+    private void fetchDefaultPhotos() {
+        new Thread(() -> {
+            DataRepository repo = DataRepository.get();
+            GrowthSpace space = repo.data().findSpace("A");
+            if (space == null) return;
+            ImageSearchClient client = new ImageSearchClient();
+            Handler main = new Handler(Looper.getMainLooper());
+            for (Bin bin : space.bins) {
+                final String variety = bin.varietyName;
+                if (variety == null || variety.isEmpty()) continue;
+                try {
+                    List<ImageResult> results = client.search(variety);
+                    if (results.isEmpty()) continue;
+                    final String base64 = ImageUtils.urlToBase64(results.get(0).fullUrl);
+                    main.post(() -> applyPhoto(variety, base64));
+                } catch (Exception ignored) {
+                    // network/decoding failure -> keep placeholder
+                }
+            }
+        }, "seed-photos").start();
+    }
+
+    private void applyPhoto(String variety, String base64) {
+        DataRepository repo = DataRepository.get();
+        GrowthSpace space = repo.data().findSpace("A");
+        if (space == null) return;
+        for (Bin bin : space.bins) {
+            if (variety.equals(bin.varietyName) && bin.imageBase64 == null) {
+                bin.imageBase64 = base64;
+            }
+        }
+        for (Preset p : repo.data().presets) {
+            if (variety.equals(p.name) && p.imageBase64 == null) {
+                p.imageBase64 = base64;
+            }
+        }
+        repo.commit();
     }
 
     private void createNotificationChannel() {
