@@ -63,6 +63,10 @@
     <string name="apply_preset">Apply preset</string>
     <string name="save_as_preset">Save as preset</string>
     <string name="preset_name">Preset name</string>
+    <string name="overwrite_preset_title">Overwrite \"%1$s\"?</string>
+    <string name="overwrite_preset_message">A preset with this name already exists.</string>
+    <string name="action_yes">Yes</string>
+    <string name="action_no">No</string>
 
     <!-- Presets -->
     <string name="edit_preset">Edit preset</string>

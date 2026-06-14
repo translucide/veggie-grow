@@ -306,13 +306,16 @@ public class BinFormFragment extends Fragment {
     }
 
     private void saveAsPreset() {
+        // Pre-populate with the current variety name as a sensible default preset name.
+        showPresetNameDialog(text(binding.inputVariety));
+    }
+
+    private void showPresetNameDialog(String prefill) {
         final EditText nameInput = new EditText(requireContext());
         nameInput.setHint(R.string.preset_name);
-        // Pre-populate with the current variety name as a sensible default preset name.
-        String variety = text(binding.inputVariety);
-        if (!variety.isEmpty()) {
-            nameInput.setText(variety);
-            nameInput.setSelection(variety.length());
+        if (prefill != null && !prefill.isEmpty()) {
+            nameInput.setText(prefill);
+            nameInput.setSelection(prefill.length());
         }
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.save_as_preset)
@@ -322,14 +325,40 @@ public class BinFormFragment extends Fragment {
                     String name = nameInput.getText().toString().trim();
                     if (name.isEmpty()) {
                         toast("Name required");
+                        showPresetNameDialog(prefill);
                         return;
                     }
-                    Bin snapshot = buildBinFromForm(false);
-                    if (snapshot == null) return;
-                    DataRepository.get().upsertPreset(Preset.fromBin(name, snapshot));
-                    toast("Preset saved");
+                    if (presetExists(name)) {
+                        confirmOverwritePreset(name);
+                    } else {
+                        savePresetNamed(name);
+                    }
                 })
                 .show();
+    }
+
+    private void confirmOverwritePreset(String name) {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(getString(R.string.overwrite_preset_title, name))
+                .setMessage(R.string.overwrite_preset_message)
+                // No -> back to the preset-name dialog with the name kept.
+                .setNegativeButton(R.string.action_no, (d, w) -> showPresetNameDialog(name))
+                .setPositiveButton(R.string.action_yes, (d, w) -> savePresetNamed(name))
+                .show();
+    }
+
+    private boolean presetExists(String name) {
+        for (Preset p : DataRepository.get().data().presets) {
+            if (name.equalsIgnoreCase(p.name)) return true;
+        }
+        return false;
+    }
+
+    private void savePresetNamed(String name) {
+        Bin snapshot = buildBinFromForm(false);
+        if (snapshot == null) return;
+        DataRepository.get().upsertPreset(Preset.fromBin(name, snapshot));
+        toast("Preset saved");
     }
 
     private void save() {
