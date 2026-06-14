@@ -65,7 +65,8 @@
                 app:tint="@color/alert_amber" />
         </LinearLayout>
 
-        <!-- Bins gallery: tap a thumbnail to open that bin directly. -->
+        <!-- Bins gallery: a wrapping grid (layout manager set in code). Tap a thumbnail to open
+             that bin directly. -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/bins_recycler"
             android:layout_width="match_parent"
@@ -73,8 +74,6 @@
             android:layout_marginTop="@dimen/space_sm"
             android:clipToPadding="false"
             android:nestedScrollingEnabled="false"
-            android:orientation="horizontal"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             tools:listitem="@layout/item_bin_thumb" />
 
         <TextView
