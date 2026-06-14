@@ -22,8 +22,10 @@ import ca.translucide.veggiegrow.R;
 import ca.translucide.veggiegrow.data.DataRepository;
 import ca.translucide.veggiegrow.data.model.Bin;
 import ca.translucide.veggiegrow.data.model.GrowthSpace;
+import ca.translucide.veggiegrow.data.model.Settings;
 import ca.translucide.veggiegrow.databinding.FragmentSpaceDetailBinding;
 import ca.translucide.veggiegrow.logic.GrowthCalculator;
+import ca.translucide.veggiegrow.logic.Units;
 import ca.translucide.veggiegrow.util.DateUtils;
 
 public class SpaceDetailFragment extends Fragment {
@@ -76,9 +78,11 @@ public class SpaceDetailFragment extends Fragment {
             return;
         }
         long now = DateUtils.todayMillis();
+        Settings.PumpRateUnit unit = DataRepository.get().settings().pumpRateUnit;
         double remaining = GrowthCalculator.estimatedReservoirRemaining(s, now);
         binding.reservoirText.setText(getString(R.string.reservoir_remaining,
-                round1(remaining), round1(s.waterReservoirSize)));
+                Units.num(Units.volumeToDisplay(remaining, unit)),
+                Units.formatVolume(s.waterReservoirSize, unit)));
         binding.lastRefillText.setText(getString(R.string.last_refill, DateUtils.format(s.lastRefillEpochMillis)));
 
         adapter.submit(s.code, s.bins, DataRepository.get().settings(), now);
@@ -131,10 +135,6 @@ public class SpaceDetailFragment extends Fragment {
     @Nullable
     private GrowthSpace currentSpace() {
         return DataRepository.get().data().findSpace(spaceCode);
-    }
-
-    private double round1(double v) {
-        return Math.round(v * 10d) / 10d;
     }
 
     @Override

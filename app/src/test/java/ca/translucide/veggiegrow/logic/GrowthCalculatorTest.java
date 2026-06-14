@@ -110,36 +110,37 @@ public class GrowthCalculatorTest {
     }
 
     @Test
-    public void reservoir_depletesFromRefill() {
+    public void reservoir_depletesFromRefillPerHour() {
+        // Volumes in mL, rates in mL/h.
         GrowthSpace s = new GrowthSpace();
-        s.waterReservoirSize = 20.0;
-        s.lastRefillEpochMillis = NOW - 10 * DAY; // refilled 10 days ago
+        s.waterReservoirSize = 20000.0;            // 20 L
+        s.lastRefillEpochMillis = NOW - 10 * DAY;  // refilled 10 days (240 h) ago
         Bin b = binStartedDaysAgo(20);
-        b.wateringSchedule.add(new WateringRatePoint(0, 0.5)); // 0.5/day
+        b.wateringSchedule.add(new WateringRatePoint(0, 50.0)); // 50 mL/h
         s.bins.add(b);
-        // consumed = 0.5 * 10 = 5 -> remaining 15
-        assertEquals(15.0, GrowthCalculator.estimatedReservoirRemaining(s, NOW), 1e-6);
+        // consumed = 50 mL/h * 240 h = 12000 -> remaining 8000
+        assertEquals(8000.0, GrowthCalculator.estimatedReservoirRemaining(s, NOW), 1e-6);
     }
 
     @Test
     public void reservoir_lowTriggersAlert() {
         Settings settings = new Settings();
-        settings.minWaterLevel = 16.0;
+        settings.minWaterLevel = 9000.0; // mL
         GrowthSpace s = new GrowthSpace();
-        s.waterReservoirSize = 20.0;
+        s.waterReservoirSize = 20000.0;
         s.lastRefillEpochMillis = NOW - 10 * DAY;
         Bin b = binStartedDaysAgo(20);
-        b.wateringSchedule.add(new WateringRatePoint(0, 0.5));
+        b.wateringSchedule.add(new WateringRatePoint(0, 50.0));
         s.bins.add(b);
-        // remaining 15 <= min 16 -> low
+        // remaining 8000 <= min 9000 -> low
         assertTrue(GrowthCalculator.isReservoirLow(s, settings, NOW));
     }
 
     @Test
     public void reservoir_fullWhenNeverRefilled() {
         GrowthSpace s = new GrowthSpace();
-        s.waterReservoirSize = 20.0;
+        s.waterReservoirSize = 20000.0;
         s.lastRefillEpochMillis = 0;
-        assertEquals(20.0, GrowthCalculator.estimatedReservoirRemaining(s, NOW), 1e-9);
+        assertEquals(20000.0, GrowthCalculator.estimatedReservoirRemaining(s, NOW), 1e-9);
     }
 }

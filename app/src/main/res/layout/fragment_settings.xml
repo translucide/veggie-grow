@@ -11,6 +11,7 @@
         android:padding="@dimen/space_md">
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_pump_rate"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/pump_rate">
@@ -37,6 +38,7 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_min_water"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_md"

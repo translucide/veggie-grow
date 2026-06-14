@@ -32,6 +32,7 @@
 
     <!-- Space detail -->
     <string name="reservoir_remaining">Reservoir: ~%1$s / %2$s</string>
+    <string name="hint_with_unit">%1$s (%2$s)</string>
     <string name="mark_refilled">Mark refilled</string>
     <string name="add_bin">Add bin</string>
     <string name="edit_bin">Edit bin</string>

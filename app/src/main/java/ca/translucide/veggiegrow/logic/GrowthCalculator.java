@@ -14,6 +14,7 @@ import ca.translucide.veggiegrow.data.model.WateringRatePoint;
 public final class GrowthCalculator {
 
     public static final long MILLIS_PER_DAY = 24L * 60L * 60L * 1000L;
+    public static final long MILLIS_PER_HOUR = 60L * 60L * 1000L;
 
     /** Sentinel returned by {@link #daysUntilHarvest} when recurring harvests are disabled and past. */
     public static final long NO_HARVEST = Long.MIN_VALUE;
@@ -114,8 +115,8 @@ public final class GrowthCalculator {
     }
 
     /**
-     * Estimated reservoir volume remaining since the last manual refill:
-     * {@code reservoirSize - (sum of current watering rates) * daysSinceRefill}.
+     * Estimated reservoir volume remaining (mL) since the last manual refill:
+     * {@code reservoirSize(mL) - (sum of current watering rates in mL/h) * hoursSinceRefill}.
      *
      * <p>This is the single place the depletion model lives; tweak it here to change behaviour.
      * If the space has never been refilled, we assume it is full.
@@ -124,9 +125,9 @@ public final class GrowthCalculator {
         if (space.lastRefillEpochMillis <= 0) {
             return space.waterReservoirSize;
         }
-        double daysSinceRefill = (nowMillis - space.lastRefillEpochMillis) / (double) MILLIS_PER_DAY;
-        if (daysSinceRefill < 0) daysSinceRefill = 0;
-        double consumed = totalCurrentWateringRate(space, nowMillis) * daysSinceRefill;
+        double hoursSinceRefill = (nowMillis - space.lastRefillEpochMillis) / (double) MILLIS_PER_HOUR;
+        if (hoursSinceRefill < 0) hoursSinceRefill = 0;
+        double consumed = totalCurrentWateringRate(space, nowMillis) * hoursSinceRefill;
         double remaining = space.waterReservoirSize - consumed;
         return Math.max(0d, remaining);
     }

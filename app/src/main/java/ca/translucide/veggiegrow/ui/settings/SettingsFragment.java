@@ -20,12 +20,17 @@ import ca.translucide.veggiegrow.R;
 import ca.translucide.veggiegrow.data.DataRepository;
 import ca.translucide.veggiegrow.data.ImportExportManager;
 import ca.translucide.veggiegrow.data.model.Settings;
+import ca.translucide.veggiegrow.data.model.Settings.PumpRateUnit;
 import ca.translucide.veggiegrow.databinding.FragmentSettingsBinding;
+import ca.translucide.veggiegrow.logic.Units;
 
 public class SettingsFragment extends Fragment {
 
     private FragmentSettingsBinding binding;
     private ImportExportManager importExport;
+
+    /** The unit the pump-rate / min-water fields are currently displayed in. */
+    private PumpRateUnit currentUnit = PumpRateUnit.LPH;
 
     private ActivityResultLauncher<String> exportLauncher;
     private ActivityResultLauncher<String[]> importLauncher;
@@ -52,17 +57,12 @@ public class SettingsFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        Settings s = DataRepository.get().settings();
-
-        binding.inputPumpRate.setText(String.valueOf(s.pumpRate));
-        binding.inputMinWater.setText(String.valueOf(s.minWaterLevel));
-        binding.inputHarvestAlert.setText(String.valueOf(s.harvestAlertDays));
-        binding.switchMock.setChecked(s.useMockHardware);
-
-        String[] units = {Settings.PumpRateUnit.LPM.name(), Settings.PumpRateUnit.GPM.name()};
+        String[] units = {PumpRateUnit.LPH.name(), PumpRateUnit.GPH.name()};
         binding.inputUnit.setAdapter(new ArrayAdapter<>(
                 requireContext(), android.R.layout.simple_list_item_1, units));
-        binding.inputUnit.setText(s.pumpRateUnit.name(), false);
+        binding.inputUnit.setOnItemClickListener((p, v, pos, id) -> onUnitSelected());
+
+        populateFromSettings(DataRepository.get().settings());
 
         binding.btnSave.setOnClickListener(v -> saveSettings());
         binding.btnExport.setOnClickListener(v ->
@@ -71,17 +71,47 @@ public class SettingsFragment extends Fragment {
                 importLauncher.launch(new String[]{ImportExportManager.MIME_TYPE, "text/*", "*/*"}));
     }
 
+    private void populateFromSettings(Settings s) {
+        currentUnit = s.pumpRateUnit;
+        binding.inputUnit.setText(currentUnit.name(), false);
+        binding.inputPumpRate.setText(Units.num(Units.rateToDisplay(s.pumpRate, currentUnit)));
+        binding.inputMinWater.setText(Units.num(Units.volumeToDisplay(s.minWaterLevel, currentUnit)));
+        binding.inputHarvestAlert.setText(String.valueOf(s.harvestAlertDays));
+        binding.switchMock.setChecked(s.useMockHardware);
+        updateUnitLabels();
+    }
+
+    /** When the unit changes, re-express the on-screen values without changing what's stored. */
+    private void onUnitSelected() {
+        PumpRateUnit selected;
+        try {
+            selected = PumpRateUnit.valueOf(binding.inputUnit.getText().toString());
+        } catch (Exception e) {
+            return;
+        }
+        if (selected == currentUnit) return;
+
+        double pumpCanonical = Units.rateFromDisplay(parseDouble(text(binding.inputPumpRate), 0), currentUnit);
+        double minCanonical = Units.volumeFromDisplay(parseDouble(text(binding.inputMinWater), 0), currentUnit);
+
+        currentUnit = selected;
+        binding.inputPumpRate.setText(Units.num(Units.rateToDisplay(pumpCanonical, currentUnit)));
+        binding.inputMinWater.setText(Units.num(Units.volumeToDisplay(minCanonical, currentUnit)));
+        updateUnitLabels();
+    }
+
+    private void updateUnitLabels() {
+        binding.layoutPumpRate.setSuffixText(Units.rateUnitLabel(currentUnit));
+        binding.layoutMinWater.setSuffixText(Units.volumeUnitLabel(currentUnit));
+    }
+
     private void saveSettings() {
         Settings s = DataRepository.get().settings();
-        s.pumpRate = parseDouble(text(binding.inputPumpRate), 1.0);
-        s.minWaterLevel = parseDouble(text(binding.inputMinWater), 1.0);
+        s.pumpRateUnit = currentUnit;
+        s.pumpRate = Units.rateFromDisplay(parseDouble(text(binding.inputPumpRate), 0), currentUnit);
+        s.minWaterLevel = Units.volumeFromDisplay(parseDouble(text(binding.inputMinWater), 0), currentUnit);
         s.harvestAlertDays = (int) parseDouble(text(binding.inputHarvestAlert), 3);
         s.useMockHardware = binding.switchMock.isChecked();
-        try {
-            s.pumpRateUnit = Settings.PumpRateUnit.valueOf(binding.inputUnit.getText().toString());
-        } catch (Exception ignored) {
-            s.pumpRateUnit = Settings.PumpRateUnit.LPM;
-        }
         DataRepository.get().commit();
         toast("Saved");
     }
@@ -101,8 +131,7 @@ public class SettingsFragment extends Fragment {
         try {
             importExport.importFrom(requireContext().getContentResolver(), uri);
             toast(getString(R.string.import_done));
-            // Refresh the form fields from the freshly-imported settings.
-            onViewCreated(requireView(), null);
+            populateFromSettings(DataRepository.get().settings());
         } catch (Exception e) {
             toast(getString(R.string.import_failed, e.getMessage()));
         }

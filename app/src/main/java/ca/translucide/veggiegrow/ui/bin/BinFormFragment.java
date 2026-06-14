@@ -30,10 +30,12 @@ import ca.translucide.veggiegrow.data.DataRepository;
 import ca.translucide.veggiegrow.data.model.Bin;
 import ca.translucide.veggiegrow.data.model.GrowthSpace;
 import ca.translucide.veggiegrow.data.model.Preset;
+import ca.translucide.veggiegrow.data.model.Settings;
 import ca.translucide.veggiegrow.data.model.WateringRatePoint;
 import ca.translucide.veggiegrow.databinding.FragmentBinFormBinding;
 import ca.translucide.veggiegrow.databinding.ItemRatePointBinding;
 import ca.translucide.veggiegrow.logic.GrowthCalculator;
+import ca.translucide.veggiegrow.logic.Units;
 import ca.translucide.veggiegrow.util.DateUtils;
 import ca.translucide.veggiegrow.util.ImageUtils;
 
@@ -45,6 +47,9 @@ public class BinFormFragment extends Fragment {
 
     private FragmentBinFormBinding binding;
     private final List<ItemRatePointBinding> rateRows = new ArrayList<>();
+
+    // Display unit for watering rates (global setting); rates are stored canonically in mL/h.
+    private Settings.PumpRateUnit unit = Settings.PumpRateUnit.LPH;
 
     private String spaceCode;
     private String binCode; // null when adding
@@ -84,6 +89,9 @@ public class BinFormFragment extends Fragment {
         presetMode = presetName != null;
 
         startDateMillis = DateUtils.todayMillis();
+        unit = DataRepository.get().settings().pumpRateUnit;
+        binding.wateringScheduleLabel.setText(getString(R.string.hint_with_unit,
+                getString(R.string.watering_schedule), Units.rateUnitLabel(unit)));
 
         binding.btnPickImage.setOnClickListener(v -> imagePicker.launch("image/*"));
         binding.btnFindPhotos.setOnClickListener(v -> findPhotos());
@@ -192,15 +200,16 @@ public class BinFormFragment extends Fragment {
             return;
         }
         for (WateringRatePoint p : points) {
-            addRateRow(p.dayOffset, p.rate);
+            addRateRow(p.dayOffset, Units.rateToDisplay(p.rate, unit));
         }
     }
 
-    private void addRateRow(int day, double rate) {
+    /** {@code displayRate} is in the current display unit; stored canonically in mL/h on save. */
+    private void addRateRow(int day, double displayRate) {
         ItemRatePointBinding row = ItemRatePointBinding.inflate(
                 getLayoutInflater(), binding.rateContainer, false);
         row.inputDay.setText(String.valueOf(day));
-        row.inputRate.setText(String.valueOf(rate));
+        row.inputRate.setText(Units.num(displayRate));
         row.btnRemove.setOnClickListener(v -> {
             binding.rateContainer.removeView(row.getRoot());
             rateRows.remove(row);
@@ -397,7 +406,9 @@ public class BinFormFragment extends Fragment {
             String dayStr = textOf(row.inputDay);
             String rateStr = textOf(row.inputRate);
             if (dayStr.isEmpty() && rateStr.isEmpty()) continue;
-            points.add(new WateringRatePoint(parseInt(dayStr), parseDouble(rateStr)));
+            // Rate is entered in the display unit; store canonically in mL/h.
+            double mlPerHour = Units.rateFromDisplay(parseDouble(rateStr), unit);
+            points.add(new WateringRatePoint(parseInt(dayStr), mlPerHour));
         }
         return points;
     }

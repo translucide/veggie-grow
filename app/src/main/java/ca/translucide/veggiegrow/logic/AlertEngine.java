@@ -43,7 +43,8 @@ public final class AlertEngine {
                         Alert.Type.RESERVOIR,
                         "Refill reservoir: " + space.code,
                         "Space " + space.code + " (" + safe(space.name) + ") reservoir is low "
-                                + "(~" + round1(remaining) + " of " + round1(space.waterReservoirSize) + ").",
+                                + "(~" + Units.formatVolume(remaining, settings.pumpRateUnit)
+                                + " of " + Units.formatVolume(space.waterReservoirSize, settings.pumpRateUnit) + ").",
                         space.code));
             }
         }
@@ -56,9 +57,5 @@ public final class AlertEngine {
 
     private static String safe(String s) {
         return s == null ? "" : s;
-    }
-
-    private static double round1(double v) {
-        return Math.round(v * 10d) / 10d;
     }
 }

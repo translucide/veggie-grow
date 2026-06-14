@@ -18,7 +18,9 @@ import ca.translucide.veggiegrow.R;
 import ca.translucide.veggiegrow.data.DataRepository;
 import ca.translucide.veggiegrow.data.model.AppData;
 import ca.translucide.veggiegrow.data.model.GrowthSpace;
+import ca.translucide.veggiegrow.data.model.Settings;
 import ca.translucide.veggiegrow.databinding.DialogSpaceFormBinding;
+import ca.translucide.veggiegrow.logic.Units;
 import ca.translucide.veggiegrow.util.ImageUtils;
 
 /**
@@ -31,6 +33,7 @@ public class SpaceFormDialog extends DialogFragment {
     private DialogSpaceFormBinding binding;
     private String imageBase64;
     private GrowthSpace editing;
+    private Settings.PumpRateUnit unit = Settings.PumpRateUnit.LPH;
 
     private ActivityResultLauncher<String> imagePicker;
 
@@ -53,6 +56,9 @@ public class SpaceFormDialog extends DialogFragment {
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
         binding = DialogSpaceFormBinding.inflate(getLayoutInflater());
 
+        unit = DataRepository.get().settings().pumpRateUnit;
+        binding.layoutReservoir.setSuffixText(Units.volumeUnitLabel(unit));
+
         String code = getArguments() != null ? getArguments().getString(ARG_CODE) : null;
         if (code != null) {
             editing = DataRepository.get().data().findSpace(code);
@@ -60,7 +66,8 @@ public class SpaceFormDialog extends DialogFragment {
         if (editing != null) {
             binding.inputCode.setText(editing.code);
             binding.inputName.setText(editing.name);
-            binding.inputReservoir.setText(String.valueOf(editing.waterReservoirSize));
+            binding.inputReservoir.setText(Units.num(
+                    Units.volumeToDisplay(editing.waterReservoirSize, unit)));
             imageBase64 = editing.imageBase64;
             android.graphics.Bitmap bmp = ImageUtils.base64ToBitmap(imageBase64);
             if (bmp != null) binding.imagePreview.setImageBitmap(bmp);
@@ -110,7 +117,8 @@ public class SpaceFormDialog extends DialogFragment {
             return;
         }
 
-        double reservoir = parseDouble(text(binding.inputReservoir));
+        // Reservoir size is entered in the display unit; store canonically in mL.
+        double reservoir = Units.volumeFromDisplay(parseDouble(text(binding.inputReservoir)), unit);
 
         if (editing != null) {
             editing.code = code;

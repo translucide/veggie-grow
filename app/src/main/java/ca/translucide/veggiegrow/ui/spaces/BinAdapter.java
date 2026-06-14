@@ -15,8 +15,8 @@ import ca.translucide.veggiegrow.R;
 import ca.translucide.veggiegrow.data.model.Bin;
 import ca.translucide.veggiegrow.data.model.Settings;
 import ca.translucide.veggiegrow.databinding.ItemBinBinding;
-import ca.translucide.veggiegrow.logic.CommandBuilder;
 import ca.translucide.veggiegrow.logic.GrowthCalculator;
+import ca.translucide.veggiegrow.logic.Units;
 import ca.translucide.veggiegrow.util.DateUtils;
 import ca.translucide.veggiegrow.util.ImageUtils;
 
@@ -64,7 +64,7 @@ public class BinAdapter extends RecyclerView.Adapter<BinAdapter.VH> {
 
         double rate = GrowthCalculator.currentWateringRate(bin, now);
         h.b.rate.setText(h.itemView.getContext()
-                .getString(R.string.current_rate, CommandBuilder.formatRate(rate)));
+                .getString(R.string.current_rate, Units.formatRate(rate, settings.pumpRateUnit)));
 
         long next = GrowthCalculator.nextHarvestDate(bin, now);
         if (next == GrowthCalculator.NO_HARVEST) {

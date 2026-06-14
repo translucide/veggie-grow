@@ -1,7 +1,5 @@
 package ca.translucide.veggiegrow.logic;
 
-import java.util.Locale;
-
 import ca.translucide.veggiegrow.data.model.AppData;
 import ca.translucide.veggiegrow.data.model.Bin;
 import ca.translucide.veggiegrow.data.model.GrowthSpace;
@@ -40,8 +38,11 @@ public final class CommandBuilder {
         return sb.toString();
     }
 
-    /** Two-decimal fixed format, matching the "A1:0.09" example. */
+    /**
+     * Formats the canonical mL/h rate for the controller payload (e.g. "90", "0.09"), trimming
+     * trailing zeros. The value uploaded is always the internal mL/h value, not a display unit.
+     */
     public static String formatRate(double rate) {
-        return String.format(Locale.US, "%.2f", rate);
+        return Units.num(rate);
     }
 }

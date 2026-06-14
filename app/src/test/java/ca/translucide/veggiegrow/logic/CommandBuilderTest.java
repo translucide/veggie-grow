@@ -43,13 +43,14 @@ public class CommandBuilderTest {
         a.bins.add(bin("2", 0.0)); // no rate -> omitted
         data.spaces.add(a);
 
-        assertEquals("A1:0.10", CommandBuilder.buildPayload(data, NOW));
+        assertEquals("A1:0.1", CommandBuilder.buildPayload(data, NOW));
     }
 
     @Test
-    public void formatRate_twoDecimals() {
+    public void formatRate_trimsTrailingZeros() {
         assertEquals("0.09", CommandBuilder.formatRate(0.09));
-        assertEquals("1.00", CommandBuilder.formatRate(1.0));
+        assertEquals("1", CommandBuilder.formatRate(1.0));
+        assertEquals("90", CommandBuilder.formatRate(90.0));
     }
 
     @Test

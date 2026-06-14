@@ -19,6 +19,7 @@ import ca.translucide.veggiegrow.data.model.Settings;
 import ca.translucide.veggiegrow.databinding.ItemSpaceBinding;
 import ca.translucide.veggiegrow.databinding.ItemSpaceExpandedBinding;
 import ca.translucide.veggiegrow.logic.GrowthCalculator;
+import ca.translucide.veggiegrow.logic.Units;
 import ca.translucide.veggiegrow.util.ImageUtils;
 
 /**
@@ -112,12 +113,9 @@ public class SpacesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
 
     private String reservoirText(View v, GrowthSpace s) {
         double remaining = GrowthCalculator.estimatedReservoirRemaining(s, now);
-        return v.getContext().getString(
-                R.string.reservoir_remaining, round1(remaining), round1(s.waterReservoirSize));
-    }
-
-    private double round1(double v) {
-        return Math.round(v * 10d) / 10d;
+        return v.getContext().getString(R.string.reservoir_remaining,
+                Units.num(Units.volumeToDisplay(remaining, settings.pumpRateUnit)),
+                Units.formatVolume(s.waterReservoirSize, settings.pumpRateUnit));
     }
 
     // --- view holders --------------------------------------------------------------------------
