@@ -26,6 +26,7 @@
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_md"
             android:hint="@string/pump_rate_unit">
 
             <com.google.android.material.textfield.MaterialAutoCompleteTextView
@@ -38,6 +39,7 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_md"
             android:hint="@string/min_water_level">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -50,6 +52,7 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_md"
             android:hint="@string/harvest_alert_days">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -63,7 +66,7 @@
             android:id="@+id/switch_mock"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginVertical="@dimen/space_sm"
+            android:layout_marginTop="@dimen/space_md"
             android:text="@string/use_mock_hardware"
             android:textColor="@color/white" />
 
@@ -71,7 +74,7 @@
             android:id="@+id/btn_save"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_sm"
+            android:layout_marginTop="@dimen/space_md"
             android:text="@string/action_save" />
 
         <View
@@ -92,7 +95,7 @@
             style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_sm"
+            android:layout_marginTop="@dimen/space_md"
             android:text="@string/import_json" />
     </LinearLayout>
 </ScrollView>

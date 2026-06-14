@@ -25,6 +25,7 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_md"
             android:hint="@string/space_name">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -37,6 +38,7 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_md"
             android:hint="@string/reservoir_size">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -50,7 +52,7 @@
             android:id="@+id/image_preview"
             android:layout_width="@dimen/detail_image"
             android:layout_height="@dimen/detail_image"
-            android:layout_marginTop="@dimen/space_sm"
+            android:layout_marginTop="@dimen/space_md"
             android:background="@color/surface_variant"
             android:contentDescription="@string/pick_image"
             android:scaleType="centerCrop"
