@@ -9,3 +9,8 @@
 .cxx
 local.properties
 app/build/
+
+# Secrets (use the .example files as templates)
+app/google-services.json
+app/src/main/assets/sync_config.json
+.gitignore
