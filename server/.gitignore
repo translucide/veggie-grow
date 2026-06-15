@@ -1,0 +1,7 @@
+# Compiled binary
+/server
+# Local env / credentials
+.env
+.env.*
+*-key.json
+service-account*.json
