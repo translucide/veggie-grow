@@ -1,0 +1,5 @@
+{
+  "_comment": "Shared-library REST API (see server/). baseUrl is the API root ending in /v1/; the app syncs per-resource under it (spaces, bins, presets, settings). authHeader is sent verbatim as the Authorization header and must match the server's AUTH_TOKEN. Leave baseUrl empty to disable sync. Prefer HTTPS (Android blocks plain HTTP by default).",
+  "baseUrl": "https://your-api-host.example.com/v1/",
+  "authHeader": "REPLACE_WITH_YOUR_AUTH_TOKEN"
+}
