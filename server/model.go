@@ -94,3 +94,33 @@ type Preset struct {
 func (p *Preset) GetRev() int64        { return p.Rev }
 func (p *Preset) SetRev(r int64)       { p.Rev = r }
 func (p *Preset) SetUpdatedAt(t int64) { p.UpdatedAtEpochMillis = t }
+
+// --- multi-tenant: accounts, members, invites --------------------------------------------------
+//
+// Each account owns an isolated library at accounts/{id}/{spaces,presets,config}. Membership lives
+// in accounts/{id}/members/{uid}; pending invites are top-level (invites/{email}) so a signing-in
+// user can be matched by email with a single lookup (no collection-group index needed).
+
+// Account is one tenant's container.
+type Account struct {
+	ID        string `json:"id" firestore:"-"`
+	Name      string `json:"name" firestore:"name"`
+	OwnerUID  string `json:"ownerUid" firestore:"ownerUid"`
+	CreatedAt int64  `json:"createdAt" firestore:"createdAt"`
+}
+
+// Member is a user's membership in an account, keyed by Firebase UID.
+type Member struct {
+	UID     string `json:"uid" firestore:"uid"`
+	Email   string `json:"email" firestore:"email"`
+	Role    string `json:"role" firestore:"role"` // owner | editor | viewer
+	AddedAt int64  `json:"addedAt" firestore:"addedAt"`
+}
+
+// Invite is a pending membership for an email that hasn't joined yet, consumed on first sign-in.
+type Invite struct {
+	Email     string `json:"email" firestore:"email"`
+	Role      string `json:"role" firestore:"role"` // editor | viewer
+	AccountID string `json:"accountId" firestore:"accountId"`
+	CreatedAt int64  `json:"createdAt" firestore:"createdAt"`
+}

@@ -1,6 +1,6 @@
 package ca.translucide.veggiegrow.ui.settings;
 
-import android.net.Uri;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -8,8 +8,6 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -17,35 +15,24 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.textfield.TextInputEditText;
 
 import ca.translucide.veggiegrow.R;
+import ca.translucide.veggiegrow.VeggieGrowApp;
+import ca.translucide.veggiegrow.data.AccountManager;
+import ca.translucide.veggiegrow.data.CloudSync;
 import ca.translucide.veggiegrow.data.DataRepository;
-import ca.translucide.veggiegrow.data.ImportExportManager;
 import ca.translucide.veggiegrow.data.model.Settings;
 import ca.translucide.veggiegrow.data.model.Settings.PumpRateUnit;
 import ca.translucide.veggiegrow.databinding.FragmentSettingsBinding;
 import ca.translucide.veggiegrow.logic.Units;
+import ca.translucide.veggiegrow.ui.auth.AuthActivity;
+import ca.translucide.veggiegrow.ui.auth.MembersActivity;
 
 public class SettingsFragment extends Fragment {
 
     private FragmentSettingsBinding binding;
-    private ImportExportManager importExport;
+    private AccountManager account;
 
     /** The unit the pump-rate / min-water fields are currently displayed in. */
     private PumpRateUnit currentUnit = PumpRateUnit.LPH;
-
-    private ActivityResultLauncher<String> exportLauncher;
-    private ActivityResultLauncher<String[]> importLauncher;
-
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        importExport = new ImportExportManager(DataRepository.get());
-
-        exportLauncher = registerForActivityResult(
-                new ActivityResultContracts.CreateDocument(ImportExportManager.MIME_TYPE),
-                this::onExportUri);
-        importLauncher = registerForActivityResult(
-                new ActivityResultContracts.OpenDocument(), this::onImportUri);
-    }
 
     @Nullable
     @Override
@@ -65,10 +52,37 @@ public class SettingsFragment extends Fragment {
         populateFromSettings(DataRepository.get().settings());
 
         binding.btnSave.setOnClickListener(v -> saveSettings());
-        binding.btnExport.setOnClickListener(v ->
-                exportLauncher.launch(ImportExportManager.SUGGESTED_FILENAME));
-        binding.btnImport.setOnClickListener(v ->
-                importLauncher.launch(new String[]{ImportExportManager.MIME_TYPE, "text/*", "*/*"}));
+
+        account = new AccountManager(requireContext());
+        setupAccountSection();
+    }
+
+    private void setupAccountSection() {
+        String email = account.currentEmail();
+        binding.textAccountEmail.setText(email == null ? "" : getString(R.string.signed_in_as, email));
+        binding.btnManageMembers.setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), MembersActivity.class)));
+        binding.btnSignOut.setOnClickListener(v -> signOut());
+
+        // "Manage members" is owner-only; resolve the role, then reveal it if we're the owner.
+        account.fetchMe((info, error) -> {
+            if (binding == null) return;
+            if (info != null && info.isOwner()) {
+                binding.btnManageMembers.setVisibility(View.VISIBLE);
+            }
+        });
+    }
+
+    private void signOut() {
+        VeggieGrowApp app = (VeggieGrowApp) requireActivity().getApplication();
+        CloudSync sync = app.cloudSync();
+        if (sync != null) sync.setEnabled(false);
+        account.signOut(requireContext(), () -> {
+            Intent intent = new Intent(requireContext(), AuthActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            requireActivity().finish();
+        });
     }
 
     private void populateFromSettings(Settings s) {
@@ -112,29 +126,8 @@ public class SettingsFragment extends Fragment {
         s.minWaterLevel = Units.volumeFromDisplay(parseDouble(text(binding.inputMinWater), 0), currentUnit);
         s.harvestAlertDays = (int) parseDouble(text(binding.inputHarvestAlert), 3);
         s.useMockHardware = binding.switchMock.isChecked();
-        DataRepository.get().commit();
+        DataRepository.get().updateSettings();
         toast("Saved");
-    }
-
-    private void onExportUri(@Nullable Uri uri) {
-        if (uri == null) return;
-        try {
-            importExport.exportTo(requireContext().getContentResolver(), uri);
-            toast(getString(R.string.export_done));
-        } catch (Exception e) {
-            toast(getString(R.string.import_failed, e.getMessage()));
-        }
-    }
-
-    private void onImportUri(@Nullable Uri uri) {
-        if (uri == null) return;
-        try {
-            importExport.importFrom(requireContext().getContentResolver(), uri);
-            toast(getString(R.string.import_done));
-            populateFromSettings(DataRepository.get().settings());
-        } catch (Exception e) {
-            toast(getString(R.string.import_failed, e.getMessage()));
-        }
     }
 
     private String text(TextInputEditText e) {

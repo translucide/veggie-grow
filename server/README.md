@@ -1,42 +1,66 @@
 # VeggieGrow REST API
 
-A self-contained Go service backing the VeggieGrow shared library. Resource-oriented CRUD over
-Firestore, packaged as a single static binary and deployed to **Google Cloud Run** (scales to zero;
-~$0 at hobby scale).
+A self-contained Go service backing VeggieGrow. **Multi-tenant**, resource-oriented CRUD over
+Firestore with **Firebase Authentication** and role-based access, packaged as a single static binary
+and deployed to **Google Cloud Run** (scales to zero; ~$0 at hobby scale).
 
-Replaces the old whole-document `GET/PUT veggiegrow.json` blob-sync with real per-resource
-endpoints.
+Each user signs in with Firebase (Google or email/password); the server reads their custom claims
+(`accountId`, `role`) to scope every request to one account's isolated library and enforce
+permissions (**owner** > **editor** > **viewer**).
 
 ## Layout
 
 | File          | Purpose                                                           |
 |---------------|------------------------------------------------------------------|
-| `main.go`     | Config, Firestore client, middleware (auth/logging/recover), shutdown |
+| `main.go`     | Config, Firestore + Firebase clients, middleware, shutdown        |
+| `auth.go`     | Firebase ID-token verification, `Principal`, roles, custom claims |
 | `handlers.go` | Routes + HTTP handlers (`Server`)                                |
-| `store.go`    | Firestore persistence (`Store`) with optimistic concurrency      |
-| `model.go`    | Domain structs; JSON field names match the Android Gson model     |
+| `store.go`    | Firestore persistence — account-scoped data + accounts/members/invites |
+| `model.go`    | Domain structs; data JSON matches the Android Gson model          |
 | `httputil.go` | JSON/error helpers, ETag / If-Match                              |
 | `Dockerfile`  | Multi-stage build → distroless static image                      |
 
 ### Firestore data model
 
 ```
-spaces/{code}                      space fields + rev + updatedAt
-spaces/{code}/bins/{binCode}       bin fields  + rev + updatedAt
-presets/{name}                     preset fields + rev + updatedAt
-config/settings                    settings singleton + rev + updatedAt
+accounts/{accountId}                            name, ownerUid, createdAt
+accounts/{accountId}/members/{uid}              email, role (owner|editor|viewer)
+accounts/{accountId}/spaces/{code}              space fields + rev + updatedAt
+accounts/{accountId}/spaces/{code}/bins/{bin}   bin fields   + rev + updatedAt
+accounts/{accountId}/presets/{name}             preset fields + rev + updatedAt
+accounts/{accountId}/config/settings            settings singleton + rev + updatedAt
+invites/{email}                                 pending invite: role, accountId (consumed on sign-in)
 ```
 
-Document IDs are the lowercased natural keys (space code, bin code, preset name), so keys are
-case-insensitive and must not contain `/`.
+Data-resource document IDs are the lowercased natural keys (space code, bin code, preset name), so
+keys are case-insensitive and must not contain `/`. Account IDs are server-assigned.
 
 ## Endpoints
 
-All `/v1/*` routes require the `Authorization` header (see Auth). `GET /health` is public.
+`GET /health` is public. Every `/v1/*` route requires a valid Firebase ID token (see Auth). Data
+routes also require an account on the token; **reads** need any member, **writes** need editor+.
+
+**Identity & account** (authenticated; no account required for `/me` and account creation):
+
+| Method & path                              | Action                                              |
+|--------------------------------------------|-----------------------------------------------------|
+| `GET    /v1/me`                            | Caller identity + account/role, or `needsOnboarding`; auto-accepts a matching invite |
+| `POST   /v1/accounts`                      | Create an account; caller becomes its owner         |
+| `GET    /v1/account`                       | Current account info                                |
+| `GET    /v1/account/members`               | List members + pending invites (any member)         |
+| `POST   /v1/account/members`               | Invite by email + role (owner)                      |
+| `PUT    /v1/account/members/{uid}`         | Change a member's role (owner)                      |
+| `DELETE /v1/account/members/{uid}`         | Remove a member (owner)                             |
+| `DELETE /v1/account/invites/{email}`       | Cancel a pending invite (owner)                     |
+
+When the server changes a user's claims (create account, accept invite, role change) the response
+includes `tokenStale: true` — the client must force-refresh its Firebase ID token before reusing it.
+
+**Account-scoped data** (reads: any member; writes: editor+):
 
 | Method & path                         | Action                                  |
 |---------------------------------------|-----------------------------------------|
-| `GET    /health`                     | Liveness probe                          |
+| `GET    /health`                     | Liveness probe (public)                 |
 | `GET    /v1/spaces`                   | List spaces (each with its bins)        |
 | `POST   /v1/spaces`                   | Create a space (409 if it exists)       |
 | `GET    /v1/spaces/{code}`            | Get a space + its bins                  |
@@ -70,18 +94,22 @@ nothing. Omit `If-Match` for last-write-wins.
 
 ## Auth
 
-Set `AUTH_TOKEN`. Requests must send it as `Authorization: <token>` (the verbatim form the Android
-client already uses) or `Authorization: Bearer <token>`. If `AUTH_TOKEN` is unset the API runs open
-(local dev only).
+Firebase Authentication. The client sends `Authorization: Bearer <firebase-id-token>`; the server
+verifies it with the Firebase Admin SDK and reads two custom claims it stamps on each user:
+`accountId` and `role` (`owner`/`editor`/`viewer`). There is **no static API token** — the Cloud Run
+service is publicly reachable but every `/v1` route is gated by token verification.
+
+The server mints claims via the Admin SDK (e.g. on account creation or accepting an invite); the
+Cloud Run service account needs `roles/firebaseauth.admin` for this.
 
 ## Configuration (env vars)
 
 | Var                    | Default        | Notes                                            |
 |------------------------|----------------|--------------------------------------------------|
 | `PORT`                 | `8080`         | Set automatically by Cloud Run                   |
-| `AUTH_TOKEN`           | _(none)_       | Static API token; unset = open                   |
-| `GOOGLE_CLOUD_PROJECT` | auto-detected  | Firestore project; resolved from ADC on Cloud Run|
+| `PROJECT_ID`           | auto-detected  | GCP/Firebase project; also resolved from ADC     |
 | `FIRESTORE_EMULATOR_HOST` | _(none)_    | Point at the local emulator for dev              |
+| `MIGRATE_LEGACY`       | _(unset)_      | One-shot cutover only: `true` makes the first account absorb pre-multi-tenant root data. Remove after. |
 
 ## Run locally (Firestore emulator)
 
@@ -91,24 +119,24 @@ gcloud emulators firestore start --host-port=localhost:8085
 
 # 2. In another shell, run the API against it
 export FIRESTORE_EMULATOR_HOST=localhost:8085
-export PROJECT_ID=veggiegrow-local
-export AUTH_TOKEN=devtoken
+export PROJECT_ID=your-project-id   # your actual GCP project — token verification needs it
 go run .            # requires Go 1.22+ locally; otherwise use Docker below
 
-# 3. Smoke test
-curl -s localhost:8080/health
-curl -s -X PUT localhost:8080/v1/spaces/a \
-  -H 'Authorization: devtoken' -H 'Content-Type: application/json' \
-  -d '{"name":"My Growth Space","waterReservoirSize":20000}'
-curl -s localhost:8080/v1/spaces -H 'Authorization: devtoken'
+# 3. Smoke test (health is public; /v1 needs a real Firebase ID token)
+curl -s localhost:8080/health                                    # {"status":"ok"}
+curl -s -o /dev/null -w '%{http_code}\n' localhost:8080/v1/me    # 401 without a token
+# To call /v1, grab an ID token from a signed-in client and:
+#   curl -s localhost:8080/v1/me -H "Authorization: Bearer $ID_TOKEN"
 ```
 
-No local Go? Build and run the container instead:
+Token verification calls Google's public-key endpoint, so the local server needs the real
+`PROJECT_ID` and outbound network even when Firestore is the emulator. No local Go? Build and run the
+container instead:
 
 ```sh
 docker build -t veggiegrow-api .
-docker run --rm -p 8080:8080 -e AUTH_TOKEN=devtoken \
-  -e PROJECT_ID=veggiegrow-local -e FIRESTORE_EMULATOR_HOST=host.docker.internal:8085 \
+docker run --rm -p 8080:8080 \
+  -e PROJECT_ID=your-project-id -e FIRESTORE_EMULATOR_HOST=host.docker.internal:8085 \
   veggiegrow-api
 ```
 
@@ -117,23 +145,26 @@ docker run --rm -p 8080:8080 -e AUTH_TOKEN=devtoken \
 This is the exact, reproducible sequence used to deploy this service from scratch, including the
 IAM grants and the two gotchas hit along the way. Run it from this `server/` directory.
 
-### What was deployed (current values)
+### Values to fill in (example placeholders)
 
-| Thing            | Value                                                              |
+| Thing            | Example                                                            |
 |------------------|-------------------------------------------------------------------|
-| GCP project      | `project-a76464bf-d7c3-49a7-920` ("Veggie Grow")                  |
-| Region           | `northamerica-northeast1` (Montréal)                              |
+| GCP project      | `your-project-id`                                                  |
+| Region           | `northamerica-northeast1` (pick one near you)                     |
 | Service          | `veggiegrow-api`                                                   |
-| Canonical URL    | `https://veggiegrow-api-d5ddwcubya-nn.a.run.app`                  |
-| Account          | `info@translucide.ca`                                              |
-| Auth token       | `AUTH_TOKEN` env (matches `assets/sync_config.json` `authHeader`) |
+| Canonical URL    | `https://SERVICE-HASH-REGION.a.run.app` (assigned at deploy)      |
+| Account          | `you@example.com`                                                  |
+| Auth             | Firebase Authentication (Google + email/password); no static token |
 
 ```sh
 # Shell variables used throughout
 REGION=northamerica-northeast1            # Montréal
 SERVICE=veggiegrow-api
-AUTH_TOKEN=Cj555hjE2bIT056vfBg66444       # must match assets/sync_config.json authHeader
 ```
+
+> **Firebase prerequisite (one-time, console):** add Firebase to the project, enable the
+> Email/Password + Google sign-in providers, and register the Android app (downloads
+> `app/google-services.json`). See the app README / the project's auth notes.
 
 ### 1. Pick (or create) a project
 
@@ -152,7 +183,7 @@ gcloud projects list --filter='name:"Veggie Grow"' --format='value(projectId)'
 Use the existing project:
 
 ```sh
-PROJECT=project-a76464bf-d7c3-49a7-920
+PROJECT=your-project-id
 gcloud config set project "$PROJECT"
 ```
 
@@ -202,10 +233,12 @@ for ROLE in \
     --member="serviceAccount:$SA" --role="$ROLE"
 done
 
-# Runtime (the container talks to Firestore) — WITHOUT this every request 500s with
-# "PermissionDenied: Missing or insufficient permissions."
+# Runtime: Firestore access (WITHOUT this every data request 500s with
+# "PermissionDenied: Missing or insufficient permissions") + minting Firebase custom claims.
 gcloud projects add-iam-policy-binding "$PROJECT" \
   --member="serviceAccount:$SA" --role="roles/datastore.user"
+gcloud projects add-iam-policy-binding "$PROJECT" \
+  --member="serviceAccount:$SA" --role="roles/firebaseauth.admin"
 ```
 
 Verify the roles landed (IAM can take a minute to propagate):
@@ -226,12 +259,13 @@ gcloud run deploy "$SERVICE" \
   --source . \
   --region "$REGION" \
   --allow-unauthenticated \
-  --set-env-vars "AUTH_TOKEN=$AUTH_TOKEN" \
+  --set-env-vars "PROJECT_ID=$PROJECT" \
   --quiet
 ```
 
-`--allow-unauthenticated` exposes the URL publicly; the app's own `AUTH_TOKEN` is what actually gates
-access. The first source deploy also auto-creates an Artifact Registry repo
+`--allow-unauthenticated` lets requests reach the container; **token verification in the app is what
+actually gates access** (`--allow-unauthenticated` only controls Cloud Run's own IAM layer, which we
+don't use here). The first source deploy also auto-creates an Artifact Registry repo
 (`cloud-run-source-deploy`).
 
 ### 6. Get the URL and verify
@@ -245,18 +279,17 @@ URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --format='value
 echo "$URL"
 
 curl -s "$URL/health"                                          # {"status":"ok"}
-curl -s -o /dev/null -w '%{http_code}\n' "$URL/v1/spaces"      # 401 (no token)
-curl -s -X PUT "$URL/v1/spaces/A" \
-  -H "Authorization: $AUTH_TOKEN" -H 'Content-Type: application/json' \
-  -d '{"name":"My Growth Space","waterReservoirSize":20000}'
-curl -s "$URL/v1/spaces" -H "Authorization: $AUTH_TOKEN"
-curl -s -X DELETE "$URL/v1/spaces/A" -H "Authorization: $AUTH_TOKEN"  # cleanup
+curl -s -o /dev/null -w '%{http_code}\n' "$URL/v1/me"          # 401 (no token)
+curl -s -o /dev/null -w '%{http_code}\n' \
+  -H 'Authorization: Bearer bogus' "$URL/v1/me"                # 401 (invalid token)
+# Authenticated calls need a real Firebase ID token from a signed-in client:
+#   curl -s "$URL/v1/me" -H "Authorization: Bearer $ID_TOKEN"
 ```
 
 ### 7. (Optional) custom domain
 
-Map `veggiegrow.translucide.ca` to the service via **Cloud Run → Manage custom domains**, then set
-`assets/sync_config.json` `baseUrl` to `https://veggiegrow.translucide.ca/v1/`.
+Map `subdomain.domain.com` to the service via **Cloud Run → Manage custom domains**, then set
+`assets/sync_config.json` `baseUrl` to `https://subdomain.domain.com/v1/`.
 
 ### Redeploy / update
 
@@ -295,15 +328,31 @@ gcloud run services update-traffic "$SERVICE" --region "$REGION" --to-revisions=
    deploy** (intermittent edge 404/401). The canonical `*.a.run.app` URL from `status.url` was
    reliable — use that.
 
-## Connecting the Android app
+## How the Android app uses this API
 
-The current client (`SyncConfig` / `CloudSync`) does whole-document `GET`/`PUT` of `veggiegrow.json`.
-Moving it to these endpoints is a separate client-side change:
+`app/src/main/assets/sync_config.json` holds only `baseUrl` (the API root ending in `/v1/`). The old
+`authHeader` static token is **dead** — auth is now per-user Firebase ID tokens.
 
-1. Point `assets/sync_config.json` `baseUrl` at `https://<cloud-run-url>/v1/` and keep the existing
-   `authHeader` token (set the same value as `AUTH_TOKEN`).
-2. Rewrite `CloudSync` to call the resource endpoints (list/get/put per space, bin, preset, and
-   settings) and use `ETag`/`If-Match` for the take-turns conflict check instead of the global
-   `revision` counter.
+**Auth & onboarding** (`ui/auth/AuthActivity`, `data/AccountManager`, `data/FirebaseTokenProvider`):
 
-That rewrite isn't included here — ask and it can be done as the next step.
+- The launcher `AuthActivity` gates the app: FirebaseUI sign-in (email or Google) → `GET /v1/me`. A
+  member opens the app; an invitee is auto-joined on `/me`; a brand-new user onboards by creating a
+  library (becoming owner).
+- `ApiClient` sends `Authorization: Bearer <Firebase ID token>` on every call; `tokenStale` responses
+  trigger a forced token refresh.
+- `ui/auth/MembersActivity` (owner-only, from Settings) lists members/invites and invites / re-roles /
+  removes people.
+
+**Sync** (`data/ApiClient` + `data/CloudSync`), unchanged except it's account-scoped and gated on
+sign-in (`CloudSync.setEnabled`):
+
+- **Write-through.** Each `DataRepository` mutation becomes a single `PUT`/`DELETE` on a one-thread
+  executor (FIFO order); a failed write is parked and retried.
+- **Pull.** Foreground polling every 20s (and on resume) replaces the local model only when the
+  server changed; skipped while writes are pending.
+- **Bootstrap.** First foreground after onboarding seeds an empty account from the local library, or
+  pulls the existing one.
+- **Renames** delete the old key and create the new one, so no orphan is left.
+
+Last-write-wins per resource (no client `If-Match` yet); per-resource granularity keeps real
+conflicts rare.

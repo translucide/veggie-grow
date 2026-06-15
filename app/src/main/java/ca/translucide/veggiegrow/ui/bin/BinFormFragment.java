@@ -134,7 +134,7 @@ public class BinFormFragment extends Fragment {
 
     private void markHarvested() {
         if (editing == null) return;
-        DataRepository.get().markHarvested(editing, DateUtils.todayMillis());
+        DataRepository.get().markHarvested(space, editing, DateUtils.todayMillis());
         updateHarvestInfo();
         toast(getString(R.string.harvest_recorded, spaceCode + editing.code));
     }
@@ -375,6 +375,7 @@ public class BinFormFragment extends Fragment {
 
         if (editing != null) {
             // Mutate in place.
+            String previousCode = editing.code;
             editing.code = result.code;
             editing.varietyName = result.varietyName;
             editing.imageBase64 = result.imageBase64;
@@ -382,7 +383,7 @@ public class BinFormFragment extends Fragment {
             editing.firstHarvestDays = result.firstHarvestDays;
             editing.harvestIntervalDays = result.harvestIntervalDays;
             editing.wateringSchedule = result.wateringSchedule;
-            DataRepository.get().commit();
+            DataRepository.get().updateBin(space, editing, previousCode);
         } else {
             DataRepository.get().addBin(space, result);
         }

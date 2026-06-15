@@ -85,19 +85,35 @@
             android:layout_marginVertical="@dimen/space_lg"
             android:background="@color/grey_700" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_export"
-            style="@style/Widget.Material3.Button.OutlinedButton"
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/export_json" />
+            android:text="@string/account"
+            android:textColor="@color/white"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/text_account_email"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_xs"
+            android:textColor="@color/grey_500"
+            android:textSize="12sp" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_import"
+            android:id="@+id/btn_manage_members"
             style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_md"
-            android:text="@string/import_json" />
+            android:text="@string/manage_members"
+            android:visibility="gone" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_sign_out"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/sign_out" />
     </LinearLayout>
 </ScrollView>

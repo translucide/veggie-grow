@@ -1,5 +1,6 @@
 plugins {
     id 'com.android.application'
+    id 'com.google.gms.google-services'
 }
 
 android {
@@ -42,14 +43,19 @@ dependencies {
     implementation 'androidx.navigation:navigation-fragment:2.7.7'
     implementation 'androidx.navigation:navigation-ui:2.7.7'
 
-    // Lifecycle (ViewModel + LiveData)
+    // Lifecycle (ViewModel + LiveData + app foreground events for auto-pull)
     implementation 'androidx.lifecycle:lifecycle-viewmodel:2.8.3'
     implementation 'androidx.lifecycle:lifecycle-livedata:2.8.3'
+    implementation 'androidx.lifecycle:lifecycle-process:2.8.3'
 
     implementation 'androidx.recyclerview:recyclerview:1.3.2'
 
-    // JSON store / import-export
+    // JSON store
     implementation 'com.google.code.gson:gson:2.11.0'
+
+    // Authentication: Firebase Auth + the drop-in FirebaseUI sign-in screen (email + Google)
+    implementation 'com.google.firebase:firebase-auth:22.3.1'
+    implementation 'com.firebaseui:firebase-ui-auth:8.0.2'
 
     // Background alert checks + notifications
     implementation 'androidx.work:work-runtime:2.9.0'

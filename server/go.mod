@@ -2,4 +2,7 @@ module github.com/translucide/veggiegrow-server
 
 go 1.22
 
-require cloud.google.com/go/firestore v1.16.0
+require (
+	cloud.google.com/go/firestore v1.16.0
+	firebase.google.com/go/v4 v4.14.1
+)

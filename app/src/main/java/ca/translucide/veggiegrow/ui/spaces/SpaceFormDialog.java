@@ -121,11 +121,12 @@ public class SpaceFormDialog extends DialogFragment {
         double reservoir = Units.volumeFromDisplay(parseDouble(text(binding.inputReservoir)), unit);
 
         if (editing != null) {
+            String previousCode = editing.code;
             editing.code = code;
             editing.name = text(binding.inputName);
             editing.waterReservoirSize = reservoir;
             editing.imageBase64 = imageBase64;
-            DataRepository.get().commit();
+            DataRepository.get().updateSpace(editing, previousCode);
         } else {
             GrowthSpace s = new GrowthSpace();
             s.code = code;

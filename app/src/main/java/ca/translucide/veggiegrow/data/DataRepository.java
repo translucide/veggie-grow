@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
@@ -16,6 +17,7 @@ import ca.translucide.veggiegrow.data.model.GrowthSpace;
 import ca.translucide.veggiegrow.data.model.Preset;
 import ca.translucide.veggiegrow.data.model.Settings;
 import ca.translucide.veggiegrow.util.DateUtils;
+import ca.translucide.veggiegrow.util.ImageUtils;
 
 /**
  * Single source of truth for application state. Holds the {@link AppData} model in memory, exposes
@@ -41,6 +43,30 @@ public class DataRepository {
     private final AppData data;
     private final MutableLiveData<AppData> liveData = new MutableLiveData<>();
     private boolean seededThisLaunch;
+    /** Notified per-resource on every mutation so changes can be pushed to the REST API. */
+    @Nullable
+    private SyncListener syncListener;
+
+    /**
+     * Receives a callback for each individual resource change, so a backend can sync just what
+     * changed rather than the whole model. Implemented by {@code CloudSync}. All callbacks fire on
+     * the main thread, right after the change has been persisted locally.
+     */
+    public interface SyncListener {
+        void onSpaceUpserted(@NonNull GrowthSpace space);
+
+        void onSpaceDeleted(@NonNull String code);
+
+        void onBinUpserted(@NonNull String spaceCode, @NonNull Bin bin);
+
+        void onBinDeleted(@NonNull String spaceCode, @NonNull String binCode);
+
+        void onPresetUpserted(@NonNull Preset preset);
+
+        void onPresetDeleted(@NonNull String name);
+
+        void onSettingsChanged(@NonNull Settings settings);
+    }
 
     private DataRepository(@NonNull Context appContext) {
         this.store = new JsonStore(appContext.getFilesDir());
@@ -133,36 +159,89 @@ public class DataRepository {
         return data.settings;
     }
 
+    /** Registers the per-resource sync listener (see {@link SyncListener}). Pass null to detach. */
+    public void setSyncListener(@Nullable SyncListener listener) {
+        this.syncListener = listener;
+    }
+
     // --- Mutations -----------------------------------------------------------------------------
+    //
+    // Every mutation persists locally (commit) and then notifies the sync listener with the single
+    // resource that changed, so the backend pushes just that resource. "Update" variants carry the
+    // previous code/name so a rename can delete the old key and create the new one (matching how
+    // preset renames are handled at the call site).
 
     public void addSpace(GrowthSpace space) {
         data.spaces.add(space);
         commit();
+        if (syncListener != null) syncListener.onSpaceUpserted(space);
+    }
+
+    /** Persists an in-place edit of an existing space. */
+    public void updateSpace(GrowthSpace space) {
+        updateSpace(space, null);
+    }
+
+    /** Persists an in-place edit of an existing space whose code may have changed from {@code previousCode}. */
+    public void updateSpace(GrowthSpace space, @Nullable String previousCode) {
+        commit();
+        if (syncListener == null) return;
+        if (previousCode != null && !previousCode.equalsIgnoreCase(space.code)) {
+            // Renamed: the server keys spaces by code, so drop the old (cascading its bins) and
+            // re-create the space with its bins under the new code.
+            syncListener.onSpaceDeleted(previousCode);
+            syncListener.onSpaceUpserted(space);
+            if (space.bins != null) {
+                for (Bin bin : space.bins) syncListener.onBinUpserted(space.code, bin);
+            }
+        } else {
+            syncListener.onSpaceUpserted(space);
+        }
     }
 
     public void removeSpace(GrowthSpace space) {
         data.spaces.remove(space);
         commit();
+        if (syncListener != null) syncListener.onSpaceDeleted(space.code);
     }
 
     public void addBin(GrowthSpace space, Bin bin) {
         space.bins.add(bin);
         commit();
+        if (syncListener != null) syncListener.onBinUpserted(space.code, bin);
+    }
+
+    /** Persists an in-place edit of an existing bin. */
+    public void updateBin(GrowthSpace space, Bin bin) {
+        updateBin(space, bin, null);
+    }
+
+    /** Persists an in-place edit of an existing bin whose code may have changed from {@code previousBinCode}. */
+    public void updateBin(GrowthSpace space, Bin bin, @Nullable String previousBinCode) {
+        commit();
+        if (syncListener == null) return;
+        if (previousBinCode != null && !previousBinCode.equalsIgnoreCase(bin.code)) {
+            syncListener.onBinDeleted(space.code, previousBinCode);
+        }
+        syncListener.onBinUpserted(space.code, bin);
     }
 
     public void removeBin(GrowthSpace space, Bin bin) {
         space.bins.remove(bin);
         commit();
+        if (syncListener != null) syncListener.onBinDeleted(space.code, bin.code);
     }
 
     public void markRefilled(GrowthSpace space, long nowMillis) {
         space.lastRefillEpochMillis = nowMillis;
         commit();
+        if (syncListener != null) syncListener.onSpaceUpserted(space);
     }
 
-    public void markHarvested(Bin bin, long nowMillis) {
+    public void markHarvested(GrowthSpace space, Bin bin, long nowMillis) {
         bin.lastHarvestEpochMillis = nowMillis;
         commit();
+        if (syncListener != null) syncListener.onBinUpserted(space.code, bin);
     }
 
     public void upsertPreset(Preset preset) {
@@ -170,22 +249,34 @@ public class DataRepository {
             if (data.presets.get(i).name.equalsIgnoreCase(preset.name)) {
                 data.presets.set(i, preset);
                 commit();
+                if (syncListener != null) syncListener.onPresetUpserted(preset);
                 return;
             }
         }
         data.presets.add(preset);
         commit();
+        if (syncListener != null) syncListener.onPresetUpserted(preset);
     }
 
     public void removePreset(Preset preset) {
         data.presets.remove(preset);
         commit();
+        if (syncListener != null) syncListener.onPresetDeleted(preset.name);
+    }
+
+    /** Persists an in-place edit of the global settings. */
+    public void updateSettings() {
+        commit();
+        if (syncListener != null) syncListener.onSettingsChanged(data.settings);
     }
 
     /** Replaces the whole model (used by import). */
     public void replaceAll(@NonNull AppData imported) {
         data.schemaVersion = imported.schemaVersion;
         data.seeded = true; // imported data stands on its own; never auto-seed over it
+        data.revision = imported.revision;
+        data.updatedAtEpochMillis = imported.updatedAtEpochMillis;
+        data.lastEditedBy = imported.lastEditedBy;
         data.settings = imported.settings != null ? imported.settings : new Settings();
         data.spaces.clear();
         if (imported.spaces != null) data.spaces.addAll(imported.spaces);
@@ -203,4 +294,36 @@ public class DataRepository {
             Log.e(TAG, "Failed to persist data", e);
         }
     }
+
+    /**
+     * Re-compresses any oversized embedded images (legacy data saved before the 256px limit) in place.
+     * Returns true if anything changed. Heavy (image decode/encode) — call off the main thread, then
+     * {@link #commit()} on the main thread to persist + notify.
+     */
+    public boolean compactOversizedImages() {
+        boolean changed = false;
+        for (GrowthSpace space : data.spaces) {
+            String s = ImageUtils.recompressIfOversized(space.imageBase64);
+            if (s != null) {
+                space.imageBase64 = s;
+                changed = true;
+            }
+            for (Bin bin : space.bins) {
+                String b = ImageUtils.recompressIfOversized(bin.imageBase64);
+                if (b != null) {
+                    bin.imageBase64 = b;
+                    changed = true;
+                }
+            }
+        }
+        for (Preset preset : data.presets) {
+            String p = ImageUtils.recompressIfOversized(preset.imageBase64);
+            if (p != null) {
+                preset.imageBase64 = p;
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
 }

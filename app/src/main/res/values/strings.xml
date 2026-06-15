@@ -98,9 +98,36 @@
     <string name="min_water_level">Min water level before alert</string>
     <string name="harvest_alert_days">Harvest alert (days in advance)</string>
     <string name="use_mock_hardware">Use mock hardware</string>
-    <string name="export_json">Export JSON</string>
-    <string name="import_json">Import JSON</string>
-    <string name="export_done">Exported successfully</string>
-    <string name="import_done">Imported successfully</string>
-    <string name="import_failed">Import failed: %1$s</string>
+
+    <!-- Authentication / onboarding -->
+    <string name="onboarding_title">Name your library</string>
+    <string name="onboarding_hint">Create your shared library. You\'ll be its owner and can invite other people to it.</string>
+    <string name="library_name">Library name</string>
+    <string name="create_library">Create library</string>
+    <string name="check_invitation">I was invited — check again</string>
+    <string name="retry">Retry</string>
+    <string name="sign_in_failed">Sign-in failed. Please try again.</string>
+    <string name="auth_error">Couldn\'t reach the server. Check your connection and retry.</string>
+
+    <!-- Account / members -->
+    <string name="account">Account</string>
+    <string name="signed_in_as">Signed in as %1$s</string>
+    <string name="manage_members">Manage members</string>
+    <string name="sign_out">Sign out</string>
+    <string name="members_title">Members</string>
+    <string name="pending_invites">Pending invites</string>
+    <string name="invite_someone">Invite someone</string>
+    <string name="invite">Invite</string>
+    <string name="invite_email_hint">Email address</string>
+    <string name="role_owner">Owner</string>
+    <string name="role_editor">Editor</string>
+    <string name="role_viewer">Viewer</string>
+    <string name="invited_as">Invited as %1$s</string>
+    <string name="change_to_editor">Change to editor</string>
+    <string name="change_to_viewer">Change to viewer</string>
+    <string name="remove_member">Remove from library</string>
+    <string name="cancel_invite">Cancel invite</string>
+    <string name="manage">Manage</string>
+    <string name="members_error">Couldn\'t load members</string>
+    <string name="action_error">Something went wrong. Try again.</string>
 </resources>
