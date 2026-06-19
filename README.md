@@ -4,20 +4,27 @@ Android app (Java) to organize, monitor and control veggie growth across **Growt
 each holding multiple **Bins**. It stores configuration, computes harvest/reservoir alerts, and
 uploads per-bin watering levels to an Arduino over **Bluetooth Classic serial (SPP/RFCOMM)**.
 
+## Repository layout
+
+- `client/` — the Android app (this Gradle project).
+- `server/` — the Go REST API the app syncs against (see [server/README.md](server/README.md)).
+
 ## Build & run
 
-This is a standard Android Studio / Gradle project (`minSdk 24`, `targetSdk 34`).
+The Android client is a standard Android Studio / Gradle project (`minSdk 24`, `targetSdk 34`)
+under `client/`.
 
-- **Android Studio**: *Open* the project folder and Run on a device/emulator. Studio supplies the
+- **Android Studio**: *Open* the `client/` folder and Run on a device/emulator. Studio supplies the
   Android SDK and resolves dependencies automatically.
 - **Command line** (requires the Android SDK; set `ANDROID_HOME` or `local.properties` →
   `sdk.dir=...`):
   ```
+  cd client
   ./gradlew assembleDebug      # build the APK
   ./gradlew test               # run the JVM unit tests
   ```
 
-The Gradle wrapper (`gradlew`) is included.
+The Gradle wrapper (`gradlew`) is included under `client/`.
 
 ## Architecture
 
